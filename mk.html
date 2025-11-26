@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Пінг-Понг | Покращена версія</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+    touch-action: manipulation;
+}
+
+body {
+    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: white;
+    overflow: hidden;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    max-height: 85vh;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    background: #0d1b2a;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* --- Меню та сторінки --- */
+.page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(13,27,42,0.95);
+    padding: 20px;
+    text-align: center;
+}
+.page.active {
+    display: flex;
+}
+
+h1 {
+    font-size: 2.6rem;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(to right, #fdbb2d, #b21f1f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+h2 {
+    font-size: 1.4rem;
+    color: #e0e1dd;
+    margin-bottom: 1.5rem;
+}
+
+.btn {
+    background: linear-gradient(to right, #1a2a6c, #b21f1f);
+    color: white;
+    border: none;
+    padding: 14px 25px;
+    font-size: 1.2rem;
+    border-radius: 40px;
+    cursor: pointer;
+    margin: 8px;
+    transition: 0.3s;
+    width: 85%;
+    max-width: 260px;
+}
+.btn:hover {
+    transform: translateY(-3px);
+}
+.controls {
+    margin-top: 15px;
+    background: rgba(26,42,108,0.7);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+}
+.difficulty-options {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    max-width: 350px;
+    margin: 20px 0;
+}
+.difficulty-btn {
+    background: rgba(26,42,108,0.7);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    margin: 6px 0;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: left;
+    padding-left: 20px;
+}
+.difficulty-btn.active {
+    background: linear-gradient(to right, #1a2a6c, #b21f1f);
+    border-left: 5px solid #fdbb2d;
+}
+.nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 350px;
+    margin-top: 20px;
+}
+.nav-btn {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 40px;
+    cursor: pointer;
+}
+
+/* --- Ігрові елементи --- */
+.score-display {
+    position: absolute;
+    top: 15px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    z-index: 5;
+}
+.player-score { color: #4cc9f0; }
+.ai-score { color: #f72585; }
+
+.pause-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.3rem;
+    color: white;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.touch-controls {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 5;
+}
+.touch-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.3);
+    background: rgba(76,201,240,0.8);
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Екран паузи */
+.screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(13,27,42,0.9);
+    z-index: 10;
+}
+.hidden {
+    display: none;
+}
+</style>
+</head>
+<body>
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+
+    <button id="pauseBtn" class="pause-btn">⏸️</button>
+
+    <div class="score-display">
+        <div class="player-score">Гравець: 0</div>
+        <div class="ai-score">Комп'ютер: 0</div>
+    </div>
+
+    <div class="touch-controls">
+        <button id="upBtn" class="touch-btn">↑</button>
+        <button id="downBtn" class="touch-btn">↓</button>
+    </div>
+
+    <!-- Головне меню -->
+    <div id="mainMenuPage" class="page active">
+        <h1>ПІНГ-ПОНГ</h1>
+        <h2>Покращена версія</h2>
+        <button id="startBtn" class="btn">Почати гру</button>
+        <button id="continueBtn" class="btn">Продовжити</button>
+        <button id="settingsBtn" class="btn">Налаштування</button>
+
+        <div class="controls">
+            ↑ Вгору / ↓ Вниз — рух ракетки<br>
+            P — Пауза | ESC — Меню
+        </div>
+    </div>
+
+    <!-- Сторінка складності -->
+    <div id="difficultyPage" class="page">
+        <h1>Рівень складності</h1>
+        <h2>Оберіть рівень гри</h2>
+        <div class="difficulty-options">
+            <button class="difficulty-btn active" data-difficulty="easy"><strong>Легкий</strong></button>
+            <button class="difficulty-btn" data-difficulty="medium"><strong>Середній</strong></button>
+            <button class="difficulty-btn" data-difficulty="hard"><strong>Складний</strong></button>
+            <button class="difficulty-btn" data-difficulty="expert"><strong>Експерт</strong></button>
+        </div>
+        <div class="nav-buttons">
+            <button id="backToMenuBtn" class="nav-btn">← Назад</button>
+            <button id="startWithDifficultyBtn" class="nav-btn">Грати →</button>
+        </div>
+    </div>
+
+    <!-- Екран паузи -->
+    <div id="pauseScreen" class="screen hidden">
+        <h1>ПАУЗА</h1>
+        <button id="resumeBtn" class="btn">Продовжити</button>
+        <button id="menuFromPauseBtn" class="btn">Головне меню</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mainMenuPage = document.getElementById('mainMenuPage');
+const difficultyPage = document.getElementById('difficultyPage');
+const pauseScreen = document.getElementById('pauseScreen');
+const startBtn = document.getElementById('startBtn');
+const continueBtn = document.getElementById('continueBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resumeBtn = document.getElementById('resumeBtn');
+const menuFromPauseBtn = document.getElementById('menuFromPauseBtn');
+const backToMenuBtn = document.getElementById('backToMenuBtn');
+const startWithDifficultyBtn = document.getElementById('startWithDifficultyBtn');
+const playerScoreEl = document.querySelector('.player-score');
+const aiScoreEl = document.querySelector('.ai-score');
+const upBtn = document.getElementById('upBtn');
+const downBtn = document.getElementById('downBtn');
+const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+
+function resizeCanvas() {
+    canvas.width = document.getElementById('gameContainer').clientWidth;
+    canvas.height = document.getElementById('gameContainer').clientHeight;
+}
+
+let gameState = {
+    playerScore: 0,
+    aiScore: 0,
+    gameRunning: false,
+    gamePaused: false,
+    difficulty: 'medium',
+    ball: { x:0,y:0,radius:0,speedX:0,speedY:0,color:'#fdbb2d' },
+    player: { x:0,y:0,width:0,height:0,speed:0,color:'#4cc9f0' },
+    ai: { x:0,y:0,width:0,height:0,speed:0,reaction:0,accuracy:0,color:'#f72585' },
+    keys: {}, touchUp:false, touchDown:false
+};
+
+const difficultySettings = {
+    easy: { aiSpeed:0.015, aiReaction:0.7, aiAccuracy:0.8, ballSpeed:0.008 },
+    medium:{ aiSpeed:0.02, aiReaction:0.8, aiAccuracy:0.9, ballSpeed:0.01 },
+    hard:  { aiSpeed:0.025, aiReaction:0.9, aiAccuracy:0.95, ballSpeed:0.012 },
+    expert:{ aiSpeed:0.03, aiReaction:1.0, aiAccuracy:1.0, ballSpeed:0.014 }
+};
+
+function initGame() {
+    const d = difficultySettings[gameState.difficulty];
+    gameState.ball.radius = Math.min(canvas.width, canvas.height)*0.02;
+    gameState.player.width = canvas.width*0.03;
+    gameState.player.height = canvas.height*0.25;
+    gameState.player.speed = canvas.height*0.025;
+    gameState.ai.width = canvas.width*0.03;
+    gameState.ai.height = canvas.height*0.25;
+    gameState.ai.speed = canvas.height*d.aiSpeed;
+    gameState.ai.reaction = d.aiReaction;
+    gameState.ai.accuracy = d.aiAccuracy;
+    resetPositions();
+}
+
+function resetPositions() {
+    const d = difficultySettings[gameState.difficulty];
+    gameState.ball.x = canvas.width/2;
+    gameState.ball.y = canvas.height/2;
+    gameState.ball.speedX = (Math.random()>0.5?1:-1)*canvas.width*d.ballSpeed;
+    gameState.ball.speedY = (Math.random()>0.5?1:-1)*canvas.height*d.ballSpeed;
+    gameState.player.x = canvas.width*0.03;
+    gameState.player.y = canvas.height/2 - gameState.player.height/2;
+    gameState.ai.x = canvas.width*0.97 - gameState.ai.width;
+    gameState.ai.y = canvas.height/2 - gameState.ai.height/2;
+}
+
+function updateScoreDisplay() {
+    playerScoreEl.textContent = `Гравець: ${gameState.playerScore}`;
+    aiScoreEl.textContent = `Комп'ютер: ${gameState.aiScore}`;
+}
+
+function updateDifficultyButtons() {
+    difficultyBtns.forEach(btn=>{
+        btn.classList.toggle('active', btn.dataset.difficulty===gameState.difficulty);
+    });
+}
+
+function saveGame() {
+    localStorage.setItem('pingPongGame', JSON.stringify({
+        playerScore: gameState.playerScore,
+        aiScore: gameState.aiScore,
+        difficulty: gameState.difficulty
+    }));
+}
+
+function loadGame() {
+    const saved = localStorage.getItem('pingPongGame');
+    if(saved){
+        const g = JSON.parse(saved);
+        gameState.playerScore = g.playerScore;
+        gameState.aiScore = g.aiScore;
+        gameState.difficulty = g.difficulty || 'medium';
+        updateScoreDisplay();
+        updateDifficultyButtons();
+        continueBtn.style.display = 'inline-block';
+    } else continueBtn.style.display='none';
+}
+
+function showPage(page){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    page.classList.add('active');
+}
+
+/* --- Основні події --- */
+startBtn.onclick = ()=>showPage(difficultyPage);
+settingsBtn.onclick = ()=>showPage(difficultyPage);
+backToMenuBtn.onclick = ()=>showPage(mainMenuPage);
+
+difficultyBtns.forEach(btn=>{
+    btn.onclick = ()=>{
+        gameState.difficulty = btn.dataset.difficulty;
+        updateDifficultyButtons();
+    };
+});
+
+startWithDifficultyBtn.onclick = ()=>{
+    showPage(mainMenuPage);
+    mainMenuPage.classList.remove('active');
+    gameState.gameRunning=true;
+    gameState.gamePaused=false;
+    initGame();
+    gameLoop();
+};
+
+continueBtn.onclick = ()=>{
+    showPage(mainMenuPage);
+    gameState.gameRunning=true;
+    gameState.gamePaused=false;
+    initGame();
+    gameLoop();
+};
+
+pauseBtn.onclick = ()=>{
+    if(gameState.gameRunning && !gameState.gamePaused){
+        gameState.gamePaused=true;
+        pauseScreen.classList.remove('hidden');
+    }
+};
+resumeBtn.onclick = ()=>{
+    gameState.gamePaused=false;
+    pauseScreen.classList.add('hidden');
+    gameLoop();
+};
+menuFromPauseBtn.onclick = ()=>{
+    gameState.gamePaused=false;
+    pauseScreen.classList.add('hidden');
+    showPage(mainMenuPage);
+    loadGame();
+};
+
+/* --- Ігровий цикл --- */
+function draw(){
+    ctx.fillStyle='#0d1b2a';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.beginPath();
+    ctx.arc(gameState.ball.x,gameState.ball.y,gameState.ball.radius,0,Math.PI*2);
+    ctx.fillStyle=gameState.ball.color; ctx.fill();
+    ctx.fillStyle=gameState.player.color;
+    ctx.fillRect(gameState.player.x,gameState.player.y,gameState.player.width,gameState.player.height);
+    ctx.fillStyle=gameState.ai.color;
+    ctx.fillRect(gameState.ai.x,gameState.ai.y,gameState.ai.width,gameState.ai.height);
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText(`Рівень: ${gameState.difficulty}`,10,canvas.height-10);
+}
+
+function update(){
+    let b=gameState.ball;
+    b.x+=b.speedX; b.y+=b.speedY;
+    if(b.y-b.radius<=0||b.y+b.radius>=canvas.height)b.speedY*=-1;
+    if(b.x-b.radius<=gameState.player.x+gameState.player.width && b.y>=gameState.player.y && b.y<=gameState.player.y+gameState.player.height && b.speedX<0)
+        b.speedX*=-1;
+    if(b.x+b.radius>=gameState.ai.x && b.y>=gameState.ai.y && b.y<=gameState.ai.y+gameState.ai.height && b.speedX>0)
+        b.speedX*=-1;
+    if(b.x-b.radius<=0){gameState.aiScore++;updateScoreDisplay();saveGame();resetPositions();}
+    else if(b.x+b.radius>=canvas.width){gameState.playerScore++;updateScoreDisplay();saveGame();resetPositions();}
+    if(gameState.keys['ArrowUp'] && gameState.player.y>0) gameState.player.y-=gameState.player.speed;
+    if(gameState.keys['ArrowDown'] && gameState.player.y+gameState.player.height<canvas.height) gameState.player.y+=gameState.player.speed;
+    if(gameState.touchUp && gameState.player.y>0) gameState.player.y-=gameState.player.speed;
+    if(gameState.touchDown && gameState.player.y+gameState.player.height<canvas.height) gameState.player.y+=gameState.player.speed;
+    moveAI();
+}
+
+function moveAI(){
+    const ai=gameState.ai,b=gameState.ball;
+    const target=b.y - ai.height/2;
+    if(ai.y<target) ai.y+=ai.speed;
+    else if(ai.y>target) ai.y-=ai.speed;
+}
+
+function gameLoop(){
+    if(!gameState.gameRunning||gameState.gamePaused)return;
+    draw(); update(); requestAnimationFrame(gameLoop);
+}
+
+/* --- Події керування --- */
+window.onkeydown=e=>{gameState.keys[e.key]=true;if(e.key==='p')pauseBtn.click();};
+window.onkeyup=e=>gameState.keys[e.key]=false;
+upBtn.ontouchstart=e=>{e.preventDefault();gameState.touchUp=true;}
+upBtn.ontouchend=e=>{gameState.touchUp=false;}
+downBtn.ontouchstart=e=>{e.preventDefault();gameState.touchDown=true;}
+downBtn.ontouchend=e=>{gameState.touchDown=false;}
+window.onresize=()=>{resizeCanvas();if(gameState.gameRunning)initGame();};
+
+window.onload=()=>{resizeCanvas();loadGame();}
+</script>
+</body>
+</html>
+

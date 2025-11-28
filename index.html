@@ -440,7 +440,7 @@
         timeTimer=setInterval(()=>{timeSec++; timeEl.textContent=timeSec; updateDifficulty();},1000);
         spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
         bonusTimer=setInterval(()=>spawnBonus(),5000);
-        powerupTimer=setInterval(()=>spawnRandomPowerup(),15000);
+        powerupTimer=setInterval(()=>spawnRandomPowerup(),10000);
         
         isGameActive=true;
         animationId=requestAnimationFrame(loop);
@@ -555,9 +555,16 @@
             consoleLog('⚡ Slow Motion активовано! Вороги сповільнені на 5 секунд', 'success');
             break;
           case 'shield':
-            activeEffects.shield = { active: true, endTime: now + duration };
-            consoleLog('🛡️ Shield активовано! Захист від одного удару', 'success');
-            break;
+           const shieldDuration = 20000; // 20 секунд
+           activeEffects.shield = { active: true, endTime: now + shieldDuration };
+           consoleLog('🛡️ Shield активовано! Захист від одного удару на 20 секунд', 'success');
+ 
+  // Просто таймер, без лічильника
+           setTimeout(() => {
+           activeEffects.shield.active = false;
+           consoleLog('🛡️ Shield закінчився!', 'info');
+          }, shieldDuration);
+          break;
           case 'speedBoost':
             activeEffects.speedBoost = { active: true, endTime: now + duration };
             consoleLog('🚀 Speed Boost активовано! Швидкість збільшена на 5 секунд', 'success');
@@ -891,7 +898,7 @@
 🤖 Бот: червоний квадрат, який переслідує гравця
 🛡️ Бот-охоронець: зелений квадрат, захищає гравця
 
-💡 Power-up'и з'являються кожні 15 секунд!` 
+💡 Power-up'и з'являються кожні 10 секунд!` 
       );
 
       // ------------------ ЛОГІКА КОНСОЛІ ТА LONG-PRESS ------------------

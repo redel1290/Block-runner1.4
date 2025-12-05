@@ -257,6 +257,29 @@
 .repo-btn:hover {
     opacity: 0.8;
 }
+   .two-player-btn {
+    background: #8844ff;
+    color: white;
+}
+.two-player-btn.active {
+    background: #44ff88;
+    color: black;
+}
+
+#score2 {
+    color: #ffaa44;
+}
+
+.player-indicator {
+    position: fixed;
+    top: 90px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 5;
+}
   </style>
 </head>
 <body>
@@ -278,13 +301,14 @@
   <div id="menu" class="screen">
     <h1>🟦 Block Runner</h1>
     <p>Уникай червоних ворогів</p>  
-    <div class="buttons">
-      <button id="startBtn">▶ Почати</button>
-      <button id="howBtn">❔ Інструкція</button>
-      <button id="botBtn" class="bot-btn">🤖 Бот: ВИМК</button>
-      <button id="settingsBtn">⚙️ Налаштування</button>
-      <button id="resetBtn">🗑️ Скинути прогрес</button>
-    </div>
+<div class="buttons">
+  <button id="startBtn">▶ Почати</button>
+  <button id="howBtn">❔ Інструкція</button>
+  <button id="botBtn" class="bot-btn">🤖 Бот: ВИМК</button>
+  <!-- Кнопка створиться динамічно через JS -->
+  <button id="settingsBtn">⚙️ Налаштування</button>
+  <button id="resetBtn">🗑️ Скинути прогрес</button>
+</div>
     <p class="small">Рекорд: <strong id="bestMenu">0</strong> | Очки: <strong id="scoreMenu">0</strong></p>
   </div>
 
@@ -435,982 +459,1303 @@
         </div>
     </div>
   </div>
+<script>
+(() => {
+  /* ------------------ Елементи DOM ------------------ */
+  const menu = document.getElementById('menu');
+  const gameScreen = document.getElementById('gameScreen');
+  const gameOver = document.getElementById('gameOver');
+  const startBtn = document.getElementById('startBtn');
+  const howBtn = document.getElementById('howBtn');
+  const botBtn = document.getElementById('botBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const pauseModal = document.getElementById('pauseModal');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const pauseMenuBtn = document.getElementById('pauseMenuBtn');
+  const menuMusic = document.getElementById('menuMusic');
+  const gameMusic = document.getElementById('gameMusic');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const languageSelect = document.getElementById('languageSelect');
+  const menuMusicToggle = document.getElementById('menuMusicToggle');
+  const gameMusicToggle = document.getElementById('gameMusicToggle');
+  const vibrationToggle = document.getElementById('vibrationToggle');
+
+  // Лічильники - зберігаємо посилання на елементи
+  let bestMenuEl = document.getElementById('bestMenu');
+  let scoreMenuEl = document.getElementById('scoreMenu');
+  let timeEl = document.getElementById('time');
+  let bestEl = document.getElementById('best');
+  let scoreEl = document.getElementById('score');
+  let scoreOut = document.getElementById('scoreOut');
+  let finalScore = document.getElementById('finalScore');
+  let bestOut = document.getElementById('bestOut');
+  let levelEl = document.getElementById('level');
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
   
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(() => console.log("Service Worker registered"))
-    .catch(err => console.log("SW registration failed:", err));
-}
-</script>
-<script>
-    (() => {
-      /* ------------------ Елементи DOM ------------------ */
-      const menu = document.getElementById('menu');
-      const gameScreen = document.getElementById('gameScreen');
-      const gameOver = document.getElementById('gameOver');
-      const startBtn = document.getElementById('startBtn');
-      const howBtn = document.getElementById('howBtn');
-      const botBtn = document.getElementById('botBtn');
-      const settingsBtn = document.getElementById('settingsBtn');
-      const retryBtn = document.getElementById('retryBtn');
-      const menuBtn = document.getElementById('menuBtn');
-      const resetBtn = document.getElementById('resetBtn');
-      const pauseModal = document.getElementById('pauseModal');
-      const pauseBtn = document.getElementById('pauseBtn');
-      const resumeBtn = document.getElementById('resumeBtn');
-      const pauseMenuBtn = document.getElementById('pauseMenuBtn');
-      const menuMusic = document.getElementById('menuMusic');
-      const gameMusic = document.getElementById('gameMusic');
-      const settingsModal = document.getElementById('settingsModal');
-      const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-      const languageSelect = document.getElementById('languageSelect');
-      const menuMusicToggle = document.getElementById('menuMusicToggle');
-      const gameMusicToggle = document.getElementById('gameMusicToggle');
-      const vibrationToggle = document.getElementById('vibrationToggle');
+  // Елементи консолі та модальних вікон
+  const consoleOverlay = document.getElementById('consoleOverlay');
+  const consoleBody = document.getElementById('consoleBody');
+  const consoleInput = document.getElementById('consoleInput');
+  const consoleSend = document.getElementById('consoleSend');
+  const closeConsoleBtn = document.getElementById('closeConsoleBtn');
+  const consoleBackBtn = document.getElementById('consoleBackBtn'); 
+  const consoleStatus = document.getElementById('consoleStatus');
+  const codeModal = document.getElementById('codeModal');
+  const codePre = document.getElementById('codePre');
+  const closeCodeModal = document.getElementById('closeCodeModal'); 
+  const helpModal = document.getElementById('helpModal'); 
+  const closeHelpModal = document.getElementById('closeHelpModal'); 
 
-      // Лічильники - зберігаємо посилання на елементи
-      let bestMenuEl = document.getElementById('bestMenu');
-      let scoreMenuEl = document.getElementById('scoreMenu');
-      let timeEl = document.getElementById('time');
-      let bestEl = document.getElementById('best');
-      let scoreEl = document.getElementById('score');
-      let scoreOut = document.getElementById('scoreOut');
-      let finalScore = document.getElementById('finalScore');
-      let bestOut = document.getElementById('bestOut');
-      let levelEl = document.getElementById('level');
+  /* ------------------ Змінні та стан гри ------------------ */
+  let width = innerWidth, height = innerHeight;
+  let animationId = null;
+  let timeTimer = null;
+  let spawnTimer = null;
+  let bonusTimer = null;
+  let powerupTimer = null;
+  let timeSec = 0;
+  let enemies = [];
+  let bonuses = [];
+  let aiBot = { x: 100, y: 100, size: 30, speed: 1 };
+  let bodyguardBot = { x: 0, y: 0, size: 25, speed: 2, angle: 0, active: false };
+  let keys = {};
+  let best = parseInt(localStorage.getItem('bestTime')) || 0;
+  let bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
+  let particles = [];
+  let stars = [];
+  let score = 0;
+  let level = 1;
+  let enemySpawnRate = 1000;
+  let botEnabled = false;
+  let menuMusicEnabled = true;
+  let gameMusicEnabled = true;
+  let vibrationEnabled = true;
+  let currentLanguage = 'uk';
+  
+  // НОВІ ЗМІННІ ДЛЯ ДВОХ ГРАВЦІВ
+  let twoPlayerMode = false;
+  let player2 = {x: 0, y: 0, size: 30, speed: 4, alive: true};
+  let score2 = 0;
+  let twoPlayerBtn = null; // Буде створено динамічно
+  
+  // Прапорці для автоматичного відтворення
+  let musicAutoplayAttempted = false;
+  
+  // Словники для перекладів
+  const translations = {
+    uk: {
+      title: "Block Runner — Покращена Версія",
+      gameTitle: "🟦 Block Runner",
+      gameSubtitle: "Уникай червоних ворогів",
+      startBtn: "▶ Почати",
+      howBtn: "❔ Інструкція",
+      botBtnOn: "🤖 Бот: УВІМК",
+      botBtnOff: "🤖 Бот: ВИМК",
+      twoPlayerBtnOn: "👥 Два гравці: УВІМК",
+      twoPlayerBtnOff: "👥 Два гравці: ВИМК",
+      settingsBtn: "⚙️ Налаштування",
+      resetBtn: "🗑️ Скинути прогрес",
+      bestRecord: "Рекорд",
+      points: "Очки",
+      time: "Час",
+      level: "Рівень",
+      gameOver: "💀 Гру закінчено!",
+      yourScore: "Ваш результат",
+      seconds: "с",
+      retryBtn: "🔁 Спробувати ще раз",
+      menuBtn: "🏠 Меню",
+      pause: "⏸️ Пауза",
+      gamePaused: "Гра призупинена.",
+      resumeBtn: "▶ Продовжити",
+      pauseMenuBtn: "🏠 У меню",
+      pressEsc: "Натисніть Esc або кнопку 'Продовжити'",
+      settingsTitle: "⚙️ Налаштування",
+      language: "🌐 Мова:",
+      menuMusic: "🎵 Музика в меню",
+      gameMusic: "🎵 Музика в грі",
+      vibration: "📳 Вібрація",
+      doneBtn: "✅ Готово",
+      consolePlaceholder: "Введіть команду, наприклад /help",
+      consoleSend: "Виконати",
+      close: "Закрити",
+      player1: "Гравець 1",
+      player2: "Гравець 2",
+      player1Score: "Очки 1",
+      player2Score: "Очки 2"
+    },
+    en: {
+      title: "Block Runner — Enhanced Version",
+      gameTitle: "🟦 Block Runner",
+      gameSubtitle: "Avoid red enemies",
+      startBtn: "▶ Start",
+      howBtn: "❔ Instructions",
+      botBtnOn: "🤖 Bot: ON",
+      botBtnOff: "🤖 Bot: OFF",
+      twoPlayerBtnOn: "👥 Two Players: ON",
+      twoPlayerBtnOff: "👥 Two Players: OFF",
+      settingsBtn: "⚙️ Settings",
+      resetBtn: "🗑️ Reset Progress",
+      bestRecord: "Best",
+      points: "Points",
+      time: "Time",
+      level: "Level",
+      gameOver: "💀 Game Over!",
+      yourScore: "Your score",
+      seconds: "s",
+      retryBtn: "🔁 Try Again",
+      menuBtn: "🏠 Menu",
+      pause: "⏸️ Pause",
+      gamePaused: "Game paused.",
+      resumeBtn: "▶ Resume",
+      pauseMenuBtn: "🏠 To Menu",
+      pressEsc: "Press Esc or 'Resume' button",
+      settingsTitle: "⚙️ Settings",
+      language: "🌐 Language:",
+      menuMusic: "🎵 Menu Music",
+      gameMusic: "🎵 Game Music",
+      vibration: "📳 Vibration",
+      doneBtn: "✅ Done",
+      consolePlaceholder: "Enter command, e.g. /help",
+      consoleSend: "Execute",
+      close: "Close",
+      player1: "Player 1",
+      player2: "Player 2",
+      player1Score: "Score 1",
+      player2Score: "Score 2"
+    }
+  };
+  
+  // Змінні для ефектів - окремі для кожного гравця
+  let activeEffects = {
+    player1: {
+      slowMotion: { active: false, endTime: 0 },
+      shield: { active: false, endTime: 0 },
+      speedBoost: { active: false, endTime: 0 }
+    },
+    player2: {
+      slowMotion: { active: false, endTime: 0 },
+      shield: { active: false, endTime: 0 },
+      speedBoost: { active: false, endTime: 0 }
+    }
+  };
+  
+  let joystick = {x:0, y:0, dx:0, dy:0, active:false};
+  let player = {x:0,y:0,size:30,speed:4, alive: true};
+  let isGameOverAnim = false;
+  let isGameActive = false;
+  let isGamePaused = false;
+  let godMode = false;
+  let helpTimeoutId = null;
+  
+  const SECURE_PASSWORD = 'kill.app';
 
-      const canvas = document.getElementById('game');
-      const ctx = canvas.getContext('2d');
-      
-      // Елементи консолі та модальних вікон
-      const consoleOverlay = document.getElementById('consoleOverlay');
-      const consoleBody = document.getElementById('consoleBody');
-      const consoleInput = document.getElementById('consoleInput');
-      const consoleSend = document.getElementById('consoleSend');
-      const closeConsoleBtn = document.getElementById('closeConsoleBtn');
-      const consoleBackBtn = document.getElementById('consoleBackBtn'); 
-      const consoleStatus = document.getElementById('consoleStatus');
-      const codeModal = document.getElementById('codeModal');
-      const codePre = document.getElementById('codePre');
-      const closeCodeModal = document.getElementById('closeCodeModal'); 
-      const helpModal = document.getElementById('helpModal'); 
-      const closeHelpModal = document.getElementById('closeHelpModal'); 
+  /* ------------------ Функції оновлення лічильників ------------------ */
+  function updateCounters() {
+    if (timeEl) timeEl.textContent = timeSec;
+    if (bestEl) bestEl.textContent = best;
+    if (scoreEl) scoreEl.textContent = score;
+    if (levelEl) levelEl.textContent = level;
+    if (bestMenuEl) bestMenuEl.textContent = best;
+    if (scoreMenuEl) scoreMenuEl.textContent = bestScore;
+    
+    // Оновлюємо очки другого гравця
+    if (twoPlayerMode) {
+      const score2El = document.getElementById('score2');
+      if (score2El) score2El.querySelector('span').textContent = score2;
+    }
+  }
 
-      /* ------------------ Змінні та стан гри ------------------ */
-      let width = innerWidth, height = innerHeight;
-      let animationId = null;
-      let timeTimer = null;
-      let spawnTimer = null;
-      let bonusTimer = null;
-      let powerupTimer = null;
-      let timeSec = 0;
-      let enemies = [];
-      let bonuses = [];
-      let aiBot = { x: 100, y: 100, size: 30, speed: 1 };
-      let bodyguardBot = { x: 0, y: 0, size: 25, speed: 2, angle: 0, active: false };
-      let keys = {};
-      let best = parseInt(localStorage.getItem('bestTime')) || 0;
-      let bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
-      let particles = [];
-      let stars = [];
-      let score = 0;
-      let level = 1;
-      let enemySpawnRate = 1000;
-      let botEnabled = false;
-      let menuMusicEnabled = true;
-      let gameMusicEnabled = true;
-      let vibrationEnabled = true;
-      let currentLanguage = 'uk';
+  function updateGameOverCounters() {
+    if (scoreOut) scoreOut.textContent = timeSec;
+    if (finalScore) finalScore.textContent = score;
+    if (bestOut) bestOut.textContent = best;
+  }
+
+  /* ------------------ Функції перекладу ------------------ */
+  function updateLanguage() {
+    const t = translations[currentLanguage];
+    
+    // Оновлення тексту в DOM
+    document.title = t.title;
+    document.querySelector('#menu h1').textContent = t.gameTitle;
+    document.querySelector('#menu p').textContent = t.gameSubtitle;
+    startBtn.textContent = t.startBtn;
+    howBtn.textContent = t.howBtn;
+    settingsBtn.textContent = t.settingsBtn;
+    resetBtn.textContent = t.resetBtn;
+    
+    // Оновлення кнопки двох гравців
+    if (twoPlayerBtn) {
+      updateTwoPlayerButton();
+    }
+    
+    // Оновлення тексту в UI гри без перезапису лічильників
+    const controls = document.querySelector('#ui .controls');
+    if (controls) {
+      const timeSpan = controls.querySelector('span:nth-child(1)');
+      const bestSpan = controls.querySelector('span:nth-child(2)');
+      const scoreSpan = controls.querySelector('span:nth-child(3)');
       
-      // Прапорці для автоматичного відтворення
-      let musicAutoplayAttempted = false;
+      if (timeSpan) timeSpan.innerHTML = `${t.time}: <span id="time">${timeSec}</span>`;
+      if (bestSpan) bestSpan.innerHTML = `${t.bestRecord}: <span id="best">${best}</span>`;
+      if (scoreSpan) scoreSpan.innerHTML = `${t.points}: <span id="score">${score}</span>`;
       
-      // Словники для перекладів
-      const translations = {
-        uk: {
-          title: "Block Runner — Покращена Версія",
-          gameTitle: "🟦 Block Runner",
-          gameSubtitle: "Уникай червоних ворогів",
-          startBtn: "▶ Почати",
-          howBtn: "❔ Інструкція",
-          botBtnOn: "🤖 Бот: УВІМК",
-          botBtnOff: "🤖 Бот: ВИМК",
-          settingsBtn: "⚙️ Налаштування",
-          resetBtn: "🗑️ Скинути прогрес",
-          bestRecord: "Рекорд",
-          points: "Очки",
-          time: "Час",
-          level: "Рівень",
-          gameOver: "💀 Гру закінчено!",
-          yourScore: "Ваш результат",
-          seconds: "с",
-          retryBtn: "🔁 Спробувати ще раз",
-          menuBtn: "🏠 Меню",
-          pause: "⏸️ Пауза",
-          gamePaused: "Гра призупинена.",
-          resumeBtn: "▶ Продовжити",
-          pauseMenuBtn: "🏠 У меню",
-          pressEsc: "Натисніть Esc або кнопку 'Продовжити'",
-          settingsTitle: "⚙️ Налаштування",
-          language: "🌐 Мова:",
-          menuMusic: "🎵 Музика в меню",
-          gameMusic: "🎵 Музика в грі",
-          vibration: "📳 Вібрація",
-          doneBtn: "✅ Готово",
-          consolePlaceholder: "Введіть команду, наприклад /help",
-          consoleSend: "Виконати",
-          close: "Закрити"
-        },
-        en: {
-          title: "Block Runner — Enhanced Version",
-          gameTitle: "🟦 Block Runner",
-          gameSubtitle: "Avoid red enemies",
-          startBtn: "▶ Start",
-          howBtn: "❔ Instructions",
-          botBtnOn: "🤖 Bot: ON",
-          botBtnOff: "🤖 Bot: OFF",
-          settingsBtn: "⚙️ Settings",
-          resetBtn: "🗑️ Reset Progress",
-          bestRecord: "Best",
-          points: "Points",
-          time: "Time",
-          level: "Level",
-          gameOver: "💀 Game Over!",
-          yourScore: "Your score",
-          seconds: "s",
-          retryBtn: "🔁 Try Again",
-          menuBtn: "🏠 Menu",
-          pause: "⏸️ Pause",
-          gamePaused: "Game paused.",
-          resumeBtn: "▶ Resume",
-          pauseMenuBtn: "🏠 To Menu",
-          pressEsc: "Press Esc or 'Resume' button",
-          settingsTitle: "⚙️ Settings",
-          language: "🌐 Language:",
-          menuMusic: "🎵 Menu Music",
-          gameMusic: "🎵 Game Music",
-          vibration: "📳 Vibration",
-          doneBtn: "✅ Done",
-          consolePlaceholder: "Enter command, e.g. /help",
-          consoleSend: "Execute",
-          close: "Close"
+      // Оновлюємо посилання на елементи
+      timeEl = document.getElementById('time');
+      bestEl = document.getElementById('best');
+      scoreEl = document.getElementById('score');
+    }
+    
+    // Оновлення індикатора рівня
+    const levelIndicator = document.querySelector('.level-indicator');
+    if (levelIndicator) {
+      levelIndicator.innerHTML = `${t.level}: <span id="level">${level}</span>`;
+      levelEl = document.getElementById('level');
+    }
+    
+    // Оновлення меню
+    const menuStats = document.querySelector('#menu .small');
+    if (menuStats) {
+      menuStats.innerHTML = `${t.bestRecord}: <strong id="bestMenu">${best}</strong> | ${t.points}: <strong id="scoreMenu">${bestScore}</strong>`;
+      bestMenuEl = document.getElementById('bestMenu');
+      scoreMenuEl = document.getElementById('scoreMenu');
+    }
+    
+    // Оновлення game over екрану
+    document.querySelector('#gameOver h1').textContent = t.gameOver;
+    const gameOverScore = document.querySelector('#gameOver p:nth-child(2)');
+    const gameOverPoints = document.querySelector('#gameOver p:nth-child(3)');
+    const gameOverBest = document.querySelector('#gameOver .small');
+    
+    if (gameOverScore) gameOverScore.innerHTML = `${t.yourScore}: <strong id="scoreOut">${timeSec}</strong> ${t.seconds}`;
+    if (gameOverPoints) gameOverPoints.innerHTML = `${t.points}: <strong id="finalScore">${score}</strong>`;
+    if (gameOverBest) gameOverBest.innerHTML = `${t.bestRecord}: <strong id="bestOut">${best}</strong> ${t.seconds}`;
+    
+    scoreOut = document.getElementById('scoreOut');
+    finalScore = document.getElementById('finalScore');
+    bestOut = document.getElementById('bestOut');
+    
+    retryBtn.textContent = t.retryBtn;
+    menuBtn.textContent = t.menuBtn;
+    
+    document.querySelector('.pause-content h2').textContent = t.pause;
+    document.querySelector('.pause-content p').textContent = t.gamePaused;
+    resumeBtn.textContent = t.resumeBtn;
+    pauseMenuBtn.textContent = t.pauseMenuBtn;
+    document.querySelector('.pause-content .small').textContent = t.pressEsc;
+    
+    // Оновлення тексту в налаштуваннях
+    document.querySelector('.settings-content h2').textContent = t.settingsTitle;
+    document.querySelector('.settings-item:nth-child(1) label').textContent = t.language;
+    document.querySelector('.settings-item:nth-child(2) label').textContent = t.menuMusic;
+    document.querySelector('.settings-item:nth-child(3) label').textContent = t.gameMusic;
+    document.querySelector('.settings-item:nth-child(4) label').textContent = t.vibration;
+    closeSettingsBtn.textContent = t.doneBtn;
+    
+    consoleInput.placeholder = t.consolePlaceholder;
+    consoleSend.textContent = t.consoleSend;
+    closeConsoleBtn.textContent = t.close;
+    closeCodeModal.textContent = t.close;
+    closeHelpModal.textContent = t.close;
+
+    // Оновлення кнопки бота
+    updateBotButton();
+    
+    // Оновлення UI для двох гравців
+    if (twoPlayerMode) {
+      updateTwoPlayerUI();
+    }
+  }
+
+  /* ------------------ ФУНКЦІЇ ДЛЯ ДВОХ ГРАВЦІВ ------------------ */
+  function toggleTwoPlayerMode() {
+    if (!isMobileDevice()) {
+      twoPlayerMode = !twoPlayerMode;
+      updateTwoPlayerButton();
+      consoleLog(`Режим двох гравців ${twoPlayerMode ? 'увімкнений' : 'вимкнений'}`, 'success');
+      
+      // Оновлюємо UI
+      updateTwoPlayerUI();
+    } else {
+      consoleLog('Режим двох гравців доступний тільки на ПК/ноутбуках', 'error');
+    }
+  }
+
+  function updateTwoPlayerButton() {
+    if (!twoPlayerBtn) return;
+    const t = translations[currentLanguage];
+    if (twoPlayerMode) {
+      twoPlayerBtn.textContent = t.twoPlayerBtnOn;
+      twoPlayerBtn.classList.add('active');
+    } else {
+      twoPlayerBtn.textContent = t.twoPlayerBtnOff;
+      twoPlayerBtn.classList.remove('active');
+    }
+  }
+
+  function updateTwoPlayerUI() {
+    const t = translations[currentLanguage];
+    if (twoPlayerMode) {
+      // Додаємо індикатор гравців
+      if (!document.querySelector('.player-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.className = 'player-indicator';
+        indicator.innerHTML = `${t.player1}: <span style="color:#0af">■</span> | ${t.player2}: <span style="color:#a52">■</span>`;
+        document.querySelector('#gameScreen').appendChild(indicator);
+      }
+      
+      // Додаємо лічильник очок другого гравця
+      const ui = document.querySelector('#ui .controls');
+      if (ui && !document.getElementById('score2')) {
+        const score2Span = document.createElement('span');
+        score2Span.id = 'score2';
+        score2Span.innerHTML = `${t.player2Score}: <span>0</span>`;
+        ui.insertBefore(score2Span, ui.querySelector('#pauseBtn'));
+      }
+    } else {
+      // Видаляємо елементи режиму двох гравців
+      const indicator = document.querySelector('.player-indicator');
+      if (indicator) indicator.remove();
+      
+      const score2El = document.getElementById('score2');
+      if (score2El) score2El.remove();
+    }
+  }
+
+  function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  function playerDeath(p) {
+    vibrate([200, 100, 200]);
+    
+    // Створюємо частинки смерті
+    for(let i=0;i<40;i++){
+      particles.push({
+        x:p.x+p.size/2,
+        y:p.y+p.size/2,
+        vx:(Math.random()-0.5)*4,
+        vy:(Math.random()-0.5)*4,
+        life:60+Math.random()*30,
+        color: i%2 ? (p === player ? '#0af' : '#a52') : '#f44',
+        glow: Math.random()*3+1
+      });
+    }
+    
+    p.alive = false;
+    consoleLog(`${p === player ? 'Гравець 1' : 'Гравець 2'} помер!`, 'error');
+    
+    // Перевірка чи закінчена гра
+    if (twoPlayerMode) {
+      if (!player.alive && !player2.alive) {
+        endGame();
+      }
+    } else {
+      endGame();
+    }
+  }
+
+  function checkPlayerCollisions() {
+    for(let e of enemies){
+      // Для гравця 1
+      if (player.alive &&
+          e.x < player.x + player.size && e.x + e.size > player.x &&
+          e.y < player.y + player.size && e.y + e.size > player.y) {
+        if(!godMode){ 
+          if(activeEffects.player1.shield.active){
+            activeEffects.player1.shield.active = false;
+            vibrate([50, 30, 50]);
+            consoleLog('🛡️ Гравець 1: Shield поглинув удар!', 'success');
+            enemies = enemies.filter(enemy => enemy !== e);
+            createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ffff');
+          } else {
+            playerDeath(player);
+          }
         }
-      };
+      }
       
-      // Змінні для ефектів
-      let activeEffects = {
+      // Для гравця 2
+      if (twoPlayerMode && player2.alive &&
+          e.x < player2.x + player2.size && e.x + e.size > player2.x &&
+          e.y < player2.y + player2.size && e.y + e.size > player2.y) {
+        if(activeEffects.player2.shield.active){
+          activeEffects.player2.shield.active = false;
+          vibrate([50, 30, 50]);
+          consoleLog('🛡️ Гравець 2: Shield поглинув удар!', 'success');
+          enemies = enemies.filter(enemy => enemy !== e);
+          createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ffff');
+        } else {
+          playerDeath(player2);
+        }
+      }
+    }
+  }
+
+  // Функція для активації ефектів для конкретного гравця
+  function activatePowerup(type, playerNum){
+    const playerEffects = activeEffects[playerNum];
+    const now = Date.now();
+    const duration = 5000; // 5 секунд для більшості ефектів
+    
+    // Якщо вже активний такий самий ефект - очищаємо таймери
+    if (playerEffects[type].active) {
+      // Скидаємо старий ефект
+      playerEffects[type].active = false;
+      consoleLog(`⚡ Гравець ${playerNum === 'player1' ? '1' : '2'}: ${type} оновлено!`, 'success');
+    }
+    
+    switch(type){
+      case 'slowMotion':
+        playerEffects.slowMotion = { active: true, endTime: now + duration };
+        consoleLog(`⚡ Гравець ${playerNum === 'player1' ? '1' : '2'}: Slow Motion активовано! Вороги сповільнені на 5 секунд`, 'success');
+        break;
+      case 'shield':
+        const shieldDuration = 20000; // 20 секунд
+        playerEffects.shield = { active: true, endTime: now + shieldDuration };
+        consoleLog(`🛡️ Гравець ${playerNum === 'player1' ? '1' : '2'}: Shield активовано! Захист від одного удару на 20 секунд`, 'success');
+        
+        // Таймер для гравця
+        setTimeout(() => {
+          if (playerEffects.shield.active) {
+            playerEffects.shield.active = false;
+            consoleLog(`🛡️ Гравець ${playerNum === 'player1' ? '1' : '2'}: Shield закінчився!`, 'info');
+          }
+        }, shieldDuration);
+        break;
+      case 'speedBoost':
+        playerEffects.speedBoost = { active: true, endTime: now + duration };
+        consoleLog(`🚀 Гравець ${playerNum === 'player1' ? '1' : '2'}: Speed Boost активовано! Швидкість збільшена на 5 секунд`, 'success');
+        break;
+    }
+  }
+
+  function collectBonus(bonus, p) {
+    const playerNum = (p === player) ? 'player1' : 'player2';
+    const playerName = (p === player) ? 'Гравець 1' : 'Гравець 2';
+    
+    if (bonus.type === 'points') {
+      if (p === player) {
+        score += 100;
+      } else {
+        score2 += 100;
+      }
+      updateCounters();
+      createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#ff0');
+      consoleLog(`${playerName} отримав +100 очок!`, 'success');
+    } else if (bonus.type === 'time') {
+      if (!twoPlayerMode) {
+        timeSec += 5;
+        updateCounters();
+        createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#0ff');
+        consoleLog('+5 секунд!', 'success');
+      }
+    } else {
+      // Power-up бонуси - активуємо для конкретного гравця
+      activatePowerup(bonus.type, playerNum);
+      createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, bonus.color);
+    }
+  }
+
+  /* ------------------ Функції гри ------------------ */
+  function resize(){
+    width=innerWidth; height=innerHeight;
+    canvas.width=width; canvas.height=height;
+    player.size = Math.max(24, Math.min(width,height)*0.045);
+    player.speed = Math.max(3, Math.min(width,height)*0.012);
+    if (twoPlayerMode) {
+      player2.size = player.size;
+      player2.speed = player.speed;
+    }
+    stars=[];
+    for(let i=0;i<150;i++){
+      stars.push({x:Math.random()*width, y:Math.random()*height, r:Math.random()*2+0.5, speed:Math.random()*0.1+0.03});
+    }
+  }
+  addEventListener('resize', resize);
+
+  function showScreen(id){
+    menu.style.display = (id==='menu')?'flex':'none';
+    gameScreen.style.display = (id==='game')?'flex':'none';
+    gameOver.style.display = (id==='over')?'flex':'none';
+    
+    pauseModal.style.display = 'none';
+    isGamePaused = false;
+    
+    if(id==='menu') {
+      updateCounters();
+      playMenuMusic();
+    } else if(id==='game') {
+      playGameMusic();
+    } else if(id==='over') {
+      updateGameOverCounters();
+      stopGameMusic();
+    }
+  }
+
+  function resetGameState(){
+    cancelAnimationFrame(animationId);
+    clearInterval(timeTimer);
+    clearInterval(spawnTimer);
+    clearInterval(bonusTimer);
+    clearInterval(powerupTimer);
+    enemies=[]; particles=[]; bonuses=[];
+    isGameOverAnim=false;
+    isGameActive=false;
+    isGamePaused=false;
+    score = 0;
+    score2 = 0;
+    level = 1;
+    enemySpawnRate = 1000;
+    activeEffects = {
+      player1: {
         slowMotion: { active: false, endTime: 0 },
         shield: { active: false, endTime: 0 },
         speedBoost: { active: false, endTime: 0 }
-      };
+      },
+      player2: {
+        slowMotion: { active: false, endTime: 0 },
+        shield: { active: false, endTime: 0 },
+        speedBoost: { active: false, endTime: 0 }
+      }
+    };
+    player.alive = true;
+    player2.alive = true;
+    pauseModal.style.display = 'none';
+    document.getElementById("repoBtn").style.display = "block";
+  }
+
+  function toggleBot() {
+    botEnabled = !botEnabled;
+    updateBotButton();
+    consoleLog(`Бот ${botEnabled ? 'увімкнений' : 'вимкнений'}`, 'success');
+  }
+
+  function updateBotButton() {
+    const t = translations[currentLanguage];
+    if (botEnabled) {
+      botBtn.textContent = t.botBtnOn;
+      botBtn.classList.add('active');
+    } else {
+      botBtn.textContent = t.botBtnOff;
+      botBtn.classList.remove('active');
+    }
+  }
+
+  function startGame(){
+    resetGameState(); resize();
+    player.x=width/2-player.size/2 - (twoPlayerMode ? 50 : 0);
+    player.y=height/2-player.size/2;
+    player.alive = true;
+    
+    if (twoPlayerMode) {
+      player2.x = width/2 - player2.size/2 + 50;
+      player2.y = height/2 - player2.size/2;
+      player2.alive = true;
+      score2 = 0;
       
-      let joystick = {x:0, y:0, dx:0, dy:0, active:false};
-      let player = {x:0,y:0,size:30,speed:4};
-      let isGameOverAnim = false;
-      let isGameActive = false;
-      let isGamePaused = false;
-      let godMode = false;
-      let helpTimeoutId = null;
+      // Приховуємо таймер і рекорд для режиму двох гравців
+      if (document.querySelectorAll('#ui .controls span')[0]) {
+        document.querySelectorAll('#ui .controls span')[0].style.display = 'none';
+      }
+      if (document.querySelectorAll('#ui .controls span')[1]) {
+        document.querySelectorAll('#ui .controls span')[1].style.display = 'none';
+      }
       
-      const SECURE_PASSWORD = 'kill.app';
-
-      /* ------------------ Функції оновлення лічильників ------------------ */
-      function updateCounters() {
-        if (timeEl) timeEl.textContent = timeSec;
-        if (bestEl) bestEl.textContent = best;
-        if (scoreEl) scoreEl.textContent = score;
-        if (levelEl) levelEl.textContent = level;
-        if (bestMenuEl) bestMenuEl.textContent = best;
-        if (scoreMenuEl) scoreMenuEl.textContent = bestScore;
+      updateTwoPlayerUI();
+    } else {
+      // Показуємо таймер і рекорд для звичайного режиму
+      if (document.querySelectorAll('#ui .controls span')[0]) {
+        document.querySelectorAll('#ui .controls span')[0].style.display = '';
       }
-
-      function updateGameOverCounters() {
-        if (scoreOut) scoreOut.textContent = timeSec;
-        if (finalScore) finalScore.textContent = score;
-        if (bestOut) bestOut.textContent = best;
+      if (document.querySelectorAll('#ui .controls span')[1]) {
+        document.querySelectorAll('#ui .controls span')[1].style.display = '';
       }
+    }
+    
+    aiBot.x = Math.random() * width;
+    aiBot.y = Math.random() * height;
+    aiBot.size = player.size * 0.9;
+    aiBot.speed = 0.7 + Math.min(1.5, best * 0.025);
+    timeSec = 0; 
+    score = 0; 
+    level = 1;
+    document.getElementById("repoBtn").style.display = "none";
 
-      /* ------------------ Функції перекладу ------------------ */
-      function updateLanguage() {
-        const t = translations[currentLanguage];
-        
-        // Оновлення тексту в DOM
-        document.title = t.title;
-        document.querySelector('#menu h1').textContent = t.gameTitle;
-        document.querySelector('#menu p').textContent = t.gameSubtitle;
-        startBtn.textContent = t.startBtn;
-        howBtn.textContent = t.howBtn;
-        settingsBtn.textContent = t.settingsBtn;
-        resetBtn.textContent = t.resetBtn;
-        
-        // Оновлення тексту в UI гри без перезапису лічильників
-        const controls = document.querySelector('#ui .controls');
-        if (controls) {
-          const timeSpan = controls.querySelector('span:nth-child(1)');
-          const bestSpan = controls.querySelector('span:nth-child(2)');
-          const scoreSpan = controls.querySelector('span:nth-child(3)');
-          
-          if (timeSpan) timeSpan.innerHTML = `${t.time}: <span id="time">${timeSec}</span>`;
-          if (bestSpan) bestSpan.innerHTML = `${t.bestRecord}: <span id="best">${best}</span>`;
-          if (scoreSpan) scoreSpan.innerHTML = `${t.points}: <span id="score">${score}</span>`;
-          
-          // Оновлюємо посилання на елементи
-          timeEl = document.getElementById('time');
-          bestEl = document.getElementById('best');
-          scoreEl = document.getElementById('score');
-        }
-        
-        // Оновлення індикатора рівня
-        const levelIndicator = document.querySelector('.level-indicator');
-        if (levelIndicator) {
-          levelIndicator.innerHTML = `${t.level}: <span id="level">${level}</span>`;
-          levelEl = document.getElementById('level');
-        }
-        
-        // Оновлення меню
-        const menuStats = document.querySelector('#menu .small');
-        if (menuStats) {
-          menuStats.innerHTML = `${t.bestRecord}: <strong id="bestMenu">${best}</strong> | ${t.points}: <strong id="scoreMenu">${bestScore}</strong>`;
-          bestMenuEl = document.getElementById('bestMenu');
-          scoreMenuEl = document.getElementById('scoreMenu');
-        }
-        
-        // Оновлення game over екрану
-        document.querySelector('#gameOver h1').textContent = t.gameOver;
-        const gameOverScore = document.querySelector('#gameOver p:nth-child(2)');
-        const gameOverPoints = document.querySelector('#gameOver p:nth-child(3)');
-        const gameOverBest = document.querySelector('#gameOver .small');
-        
-        if (gameOverScore) gameOverScore.innerHTML = `${t.yourScore}: <strong id="scoreOut">${timeSec}</strong> ${t.seconds}`;
-        if (gameOverPoints) gameOverPoints.innerHTML = `${t.points}: <strong id="finalScore">${score}</strong>`;
-        if (gameOverBest) gameOverBest.innerHTML = `${t.bestRecord}: <strong id="bestOut">${best}</strong> ${t.seconds}`;
-        
-        scoreOut = document.getElementById('scoreOut');
-        finalScore = document.getElementById('finalScore');
-        bestOut = document.getElementById('bestOut');
-        
-        retryBtn.textContent = t.retryBtn;
-        menuBtn.textContent = t.menuBtn;
-        
-        document.querySelector('.pause-content h2').textContent = t.pause;
-        document.querySelector('.pause-content p').textContent = t.gamePaused;
-        resumeBtn.textContent = t.resumeBtn;
-        pauseMenuBtn.textContent = t.pauseMenuBtn;
-        document.querySelector('.pause-content .small').textContent = t.pressEsc;
-        
-        // Оновлення тексту в налаштуваннях
-        document.querySelector('.settings-content h2').textContent = t.settingsTitle;
-        document.querySelector('.settings-item:nth-child(1) label').textContent = t.language;
-        document.querySelector('.settings-item:nth-child(2) label').textContent = t.menuMusic;
-        document.querySelector('.settings-item:nth-child(3) label').textContent = t.gameMusic;
-        document.querySelector('.settings-item:nth-child(4) label').textContent = t.vibration;
-        closeSettingsBtn.textContent = t.doneBtn;
-        
-        consoleInput.placeholder = t.consolePlaceholder;
-        consoleSend.textContent = t.consoleSend;
-        closeConsoleBtn.textContent = t.close;
-        closeCodeModal.textContent = t.close;
-        closeHelpModal.textContent = t.close;
+    best = parseInt(localStorage.getItem('bestTime')) || 0;
+    bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
 
-        // Оновлення кнопки бота
-        updateBotButton();
-      }
+    if (!twoPlayerMode) {
+      timeTimer=setInterval(()=>{
+        timeSec++; 
+        updateCounters();
+        updateDifficulty();
+      },1000);
+    }
+    
+    spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
+    bonusTimer=setInterval(()=>spawnBonus(),5000);
+    powerupTimer=setInterval(()=>spawnRandomPowerup(),10000);
+    
+    isGameActive=true;
+    updateCounters();
+    animationId=requestAnimationFrame(loop);
+  }
 
-      /* ------------------ Функції гри ------------------ */
-      function resize(){
-        width=innerWidth; height=innerHeight;
-        canvas.width=width; canvas.height=height;
-        player.size = Math.max(24, Math.min(width,height)*0.045);
-        player.speed = Math.max(3, Math.min(width,height)*0.012);
-        stars=[];
-        for(let i=0;i<150;i++){
-          stars.push({x:Math.random()*width, y:Math.random()*height, r:Math.random()*2+0.5, speed:Math.random()*0.1+0.03});
-        }
-      }
-      addEventListener('resize', resize);
+  function updateDifficulty() {
+    level = Math.floor(timeSec / 30) + 1;
+    enemySpawnRate = Math.max(300, 1000 - level * 100);
+    
+    clearInterval(spawnTimer);
+    spawnTimer = setInterval(() => spawnEnemy(), enemySpawnRate);
+    updateCounters();
+  }
+  
+  function togglePause(){
+    if(!isGameActive || isGameOverAnim) return;
 
-      function showScreen(id){
-        menu.style.display = (id==='menu')?'flex':'none';
-        gameScreen.style.display = (id==='game')?'flex':'none';
-        gameOver.style.display = (id==='over')?'flex':'none';
-        
-        pauseModal.style.display = 'none';
-        isGamePaused = false;
-        
-        if(id==='menu') {
-          updateCounters();
-          playMenuMusic();
-        } else if(id==='game') {
-          playGameMusic();
-        } else if(id==='over') {
-          updateGameOverCounters();
-          stopGameMusic();
-        }
-      }
+    isGamePaused = !isGamePaused;
+    pauseModal.style.display = isGamePaused ? 'flex' : 'none';
 
-      function resetGameState(){
-        cancelAnimationFrame(animationId);
-        clearInterval(timeTimer);
-        clearInterval(spawnTimer);
-        clearInterval(bonusTimer);
-        clearInterval(powerupTimer);
-        enemies=[]; particles=[]; bonuses=[];
-        isGameOverAnim=false;
-        isGameActive=false;
-        isGamePaused=false;
-        score = 0;
-        level = 1;
-        enemySpawnRate = 1000;
-        activeEffects = {
-          slowMotion: { active: false, endTime: 0 },
-          shield: { active: false, endTime: 0 },
-          speedBoost: { active: false, endTime: 0 }
-        };
-        pauseModal.style.display = 'none';
-        document.getElementById("repoBtn").style.display = "block";
-      }
-
-      function toggleBot() {
-        botEnabled = !botEnabled;
-        updateBotButton();
-        consoleLog(`Бот ${botEnabled ? 'увімкнений' : 'вимкнений'}`, 'success');
-      }
-
-      function updateBotButton() {
-        const t = translations[currentLanguage];
-        if (botEnabled) {
-          botBtn.textContent = t.botBtnOn;
-          botBtn.classList.add('active');
-        } else {
-          botBtn.textContent = t.botBtnOff;
-          botBtn.classList.remove('active');
-        }
-      }
-
-      function startGame(){
-        resetGameState(); resize();
-        player.x=width/2-player.size/2;
-        player.y=height/2-player.size/2;
-        aiBot.x = Math.random() * width;
-        aiBot.y = Math.random() * height;
-        aiBot.size = player.size * 0.9;
-        aiBot.speed = 0.7 + Math.min(1.5, best * 0.025);
-        timeSec = 0; 
-        score = 0; 
-        level = 1;
-        document.getElementById("repoBtn").style.display = "none";
-
-        best = parseInt(localStorage.getItem('bestTime')) || 0;
-        bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
-
+    if(isGamePaused){
+      cancelAnimationFrame(animationId);
+      clearInterval(timeTimer);
+      clearInterval(spawnTimer);
+      clearInterval(bonusTimer);
+      clearInterval(powerupTimer);
+      stopGameMusic();
+    } else {
+      if (!twoPlayerMode) {
         timeTimer=setInterval(()=>{
           timeSec++; 
           updateCounters();
           updateDifficulty();
         },1000);
-        spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
-        bonusTimer=setInterval(()=>spawnBonus(),5000);
-        powerupTimer=setInterval(()=>spawnRandomPowerup(),10000);
-        
-        isGameActive=true;
-        updateCounters();
-        animationId=requestAnimationFrame(loop);
       }
+      spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
+      bonusTimer=setInterval(()=>spawnBonus(),5000);
+      powerupTimer=setInterval(()=>spawnRandomPowerup(),15000);
+      animationId=requestAnimationFrame(loop);
+      playGameMusic();
+    }
+    document.getElementById("repoBtn").style.display = "none";
+  }
 
-      function updateDifficulty() {
-        level = Math.floor(timeSec / 30) + 1;
-        enemySpawnRate = Math.max(300, 1000 - level * 100);
-        
-        clearInterval(spawnTimer);
-        spawnTimer = setInterval(() => spawnEnemy(), enemySpawnRate);
-        updateCounters();
+  function endGame(){
+    clearInterval(timeTimer);
+    clearInterval(spawnTimer);
+    clearInterval(bonusTimer);
+    clearInterval(powerupTimer);
+    isGameActive=false;
+    isGamePaused = false;
+    pauseModal.style.display = 'none';
+    
+    for(let i=0;i<80;i++){
+      particles.push({
+        x:player.x+player.size/2,
+        y:player.y+player.size/2,
+        vx:(Math.random()-0.5)*4,
+        vy:(Math.random()-0.5)*4,
+        life:60+Math.random()*30,
+        color:i%2?'#0af':'#f44',
+        glow: Math.random()*3+1
+      });
+    }
+    isGameOverAnim=true;
+  }
+
+  function spawnEnemy(){
+    const types = ['normal', 'fast', 'big', 'smart'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    const size = type === 'big' ? 40 : type === 'fast' ? 15 : 25;
+    const speed = type === 'fast' ? 3 : type === 'smart' ? 1 : 1.5 + Math.random();
+    
+    let x, y, vx = 0, vy = 0;
+    const edge = Math.floor(Math.random() * 4);
+    
+    if(edge===0){x=-size;y=Math.random()*height;vx=speed;}
+    if(edge===1){x=width+size;y=Math.random()*height;vx=-speed;}
+    if(edge===2){x=Math.random()*width;y=-size;vy=speed;}
+    if(edge===3){x=Math.random()*width;y=height+size;vy=-speed;}
+    
+    enemies.push({x, y, vx, vy, size, type});
+  }
+
+  function spawnBonus(){
+    if(bonuses.length < 3) {
+      bonuses.push({
+        x: Math.random() * (width - 20),
+        y: Math.random() * (height - 20),
+        size: 15,
+        type: Math.random() > 0.7 ? 'time' : 'points',
+        life: 300
+      });
+    }
+  }
+
+  // Функція для спавну випадкового power-up
+  function spawnRandomPowerup(){
+    const powerups = ['slowMotion', 'shield', 'speedBoost'];
+    const randomPowerup = powerups[Math.floor(Math.random() * powerups.length)];
+    
+    bonuses.push({
+      x: Math.random() * (width - 25),
+      y: Math.random() * (height - 25),
+      size: 20,
+      type: randomPowerup,
+      life: 300,
+      color: randomPowerup === 'slowMotion' ? '#ff00ff' : 
+             randomPowerup === 'shield' ? '#00ffff' : '#ffff00'
+    });
+  }
+
+  function updateEffects(){
+    const now = Date.now();
+    
+    // Оновлюємо ефекти для обох гравців
+    ['player1', 'player2'].forEach(playerNum => {
+      for(let effect in activeEffects[playerNum]){
+        if(activeEffects[playerNum][effect].active && now > activeEffects[playerNum][effect].endTime){
+          activeEffects[playerNum][effect].active = false;
+          consoleLog(`${playerNum === 'player1' ? 'Гравець 1' : 'Гравець 2'}: ${effect} закінчився`, 'info');
+        }
       }
+    });
+  }
+
+  function updateBodyguardBot(){
+    if(!bodyguardBot.active) return;
+    
+    // Бот-охоронець захищає тільки гравця 1
+    if (!player.alive) return;
+    
+    // Рух по колу навколо гравця
+    bodyguardBot.angle += 0.05;
+    const radius = 80;
+    bodyguardBot.x = player.x + player.size/2 + Math.cos(bodyguardBot.angle) * radius - bodyguardBot.size/2;
+    bodyguardBot.y = player.y + player.size/2 + Math.sin(bodyguardBot.angle) * radius - bodyguardBot.size/2;
+    
+    // Перевірка зіткнень з ворогами
+    for(let i = enemies.length - 1; i >= 0; i--){
+      const e = enemies[i];
+      if(
+        bodyguardBot.x < e.x + e.size &&
+        bodyguardBot.x + bodyguardBot.size > e.x &&
+        bodyguardBot.y < e.y + e.size &&
+        bodyguardBot.y + bodyguardBot.size > e.y
+      ){
+        // 25% шанс знищити ворога
+        if(Math.random() < 0.25){
+          enemies.splice(i, 1);
+          createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ff00');
+          consoleLog('🛡️ Бот-охоронець знищив ворога!', 'success');
+        }
+      }
+    }
+  }
+
+  function createBonusParticles(x, y, color) {
+    for(let i=0;i<20;i++){
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random()-0.5)*3,
+        vy: (Math.random()-0.5)*3,
+        life: 30+Math.random()*20,
+        color: color,
+        glow: Math.random()*2+1
+      });
+    }
+  }
+
+  // Функція для вібрації
+  function vibrate(pattern) {
+    if (vibrationEnabled && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  }
+
+  function update(){
+    if(isGamePaused) return;
+
+    if(isGameActive){
+      // Оновлення ефектів
+      updateEffects();
       
-      function togglePause(){
-        if(!isGameActive || isGameOverAnim) return;
+      // Рух гравця 1 з урахуванням speed boost
+      let currentSpeed1 = player.speed;
+      if(activeEffects.player1.speedBoost.active) currentSpeed1 *= 1.6;
 
-        isGamePaused = !isGamePaused;
-        pauseModal.style.display = isGamePaused ? 'flex' : 'none';
+      // Рух гравця 1 (WASD) - використовуємо маленькі літери
+      if(keys['w']) player.y-=currentSpeed1;
+      if(keys['s']) player.y+=currentSpeed1;
+      if(keys['a']) player.x-=currentSpeed1;
+      if(keys['d']) player.x+=currentSpeed1;
 
-        if(isGamePaused){
-          cancelAnimationFrame(animationId);
-          clearInterval(timeTimer);
-          clearInterval(spawnTimer);
-          clearInterval(bonusTimer);
-          clearInterval(powerupTimer);
-          stopGameMusic();
+      // Рух гравця 2 (стрілки) тільки в режимі двох гравців
+      if (twoPlayerMode && player2.alive) {
+        let currentSpeed2 = player2.speed;
+        if(activeEffects.player2.speedBoost.active) currentSpeed2 *= 1.6;
+        
+        // Для стрілок використовуємо оригінальні значення
+        if(keys['ArrowUp']) player2.y-=currentSpeed2;
+        if(keys['ArrowDown']) player2.y+=currentSpeed2;
+        if(keys['ArrowLeft']) player2.x-=currentSpeed2;
+        if(keys['ArrowRight']) player2.x+=currentSpeed2;
+        
+        player2.x=Math.max(0,Math.min(player2.x,width-player2.size));
+        player2.y=Math.max(0,Math.min(player2.y,height-player2.size));
+      }
+
+      if(joystick.active){
+        player.x += joystick.dx * currentSpeed1;
+        player.y += joystick.dy * currentSpeed1;
+      }
+
+      player.x=Math.max(0,Math.min(player.x,width-player.size));
+      player.y=Math.max(0,Math.min(player.y,height-player.size));
+
+      // Рух AI бота (переслідує найближчого живого гравця)
+      if (botEnabled) {
+
+        // Вибір цілі з урахуванням того, хто живий
+        let targetPlayer = null;
+
+        // Якщо живий лише гравець 1
+        // Якщо живий лише гравець 1 (і режим двох гравців увімкнений)
+        if (twoPlayerMode && player.alive && !player2.alive) {
+    targetPlayer = player;
+}
+
+        // Якщо живий лише гравець 2
+        else if (!player.alive && player2.alive) {
+            targetPlayer = player2;
+        }
+        // Якщо обидва живі
+        else if (player.alive && player2.alive) {
+            const distToP1 = Math.hypot(player.x - aiBot.x, player.y - aiBot.y);
+            const distToP2 = Math.hypot(player2.x - aiBot.x, player2.y - aiBot.y);
+            targetPlayer = distToP1 < distToP2 ? player : player2;
+        }
+
+        // Якщо ніхто не живий — бот стоїть
+        if (!targetPlayer) {
+            // можеш додати анімацію стояння якщо треба
         } else {
-          timeTimer=setInterval(()=>{
-            timeSec++; 
-            updateCounters();
-            updateDifficulty();
-          },1000);
-          spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
-          bonusTimer=setInterval(()=>spawnBonus(),5000);
-          powerupTimer=setInterval(()=>spawnRandomPowerup(),15000);
-          animationId=requestAnimationFrame(loop);
-          playGameMusic();
-        }
-        document.getElementById("repoBtn").style.display = "none";
-      }
 
-      function endGame(){
-        clearInterval(timeTimer);
-        clearInterval(spawnTimer);
-        clearInterval(bonusTimer);
-        clearInterval(powerupTimer);
-        isGameActive=false;
-        isGamePaused = false;
-        pauseModal.style.display = 'none';
-        
-        for(let i=0;i<80;i++){
-          particles.push({
-            x:player.x+player.size/2,
-            y:player.y+player.size/2,
-            vx:(Math.random()-0.5)*4,
-            vy:(Math.random()-0.5)*4,
-            life:60+Math.random()*30,
-            color:i%2?'#0af':'#f44',
-            glow: Math.random()*3+1
-          });
-        }
-        isGameOverAnim=true;
-      }
-
-      function spawnEnemy(){
-        const types = ['normal', 'fast', 'big', 'smart'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        
-        const size = type === 'big' ? 40 : type === 'fast' ? 15 : 25;
-        const speed = type === 'fast' ? 3 : type === 'smart' ? 1 : 1.5 + Math.random();
-        
-        let x, y, vx = 0, vy = 0;
-        const edge = Math.floor(Math.random() * 4);
-        
-        if(edge===0){x=-size;y=Math.random()*height;vx=speed;}
-        if(edge===1){x=width+size;y=Math.random()*height;vx=-speed;}
-        if(edge===2){x=Math.random()*width;y=-size;vy=speed;}
-        if(edge===3){x=Math.random()*width;y=height+size;vy=-speed;}
-        
-        enemies.push({x, y, vx, vy, size, type});
-      }
-
-      function spawnBonus(){
-        if(bonuses.length < 3) {
-          bonuses.push({
-            x: Math.random() * (width - 20),
-            y: Math.random() * (height - 20),
-            size: 15,
-            type: Math.random() > 0.7 ? 'time' : 'points',
-            life: 300
-          });
-        }
-      }
-
-      // Функція для спавну випадкового power-up
-      function spawnRandomPowerup(){
-        const powerups = ['slowMotion', 'shield', 'speedBoost'];
-        const randomPowerup = powerups[Math.floor(Math.random() * powerups.length)];
-        
-        bonuses.push({
-          x: Math.random() * (width - 25),
-          y: Math.random() * (height - 25),
-          size: 20,
-          type: randomPowerup,
-          life: 300,
-          color: randomPowerup === 'slowMotion' ? '#ff00ff' : 
-                 randomPowerup === 'shield' ? '#00ffff' : '#ffff00'
-        });
-      }
-
-      function activatePowerup(type){
-        const now = Date.now();
-        const duration = 5000; // 5 секунд
-        
-        switch(type){
-          case 'slowMotion':
-            activeEffects.slowMotion = { active: true, endTime: now + duration };
-            consoleLog('⚡ Slow Motion активовано! Вороги сповільнені на 5 секунд', 'success');
-            break;
-          case 'shield':
-           const shieldDuration = 20000; // 20 секунд
-           activeEffects.shield = { active: true, endTime: now + shieldDuration };
-           consoleLog('🛡️ Shield активовано! Захист від одного удару на 20 секунд', 'success');
- 
-  // Просто таймер, без лічильника
-           setTimeout(() => {
-           activeEffects.shield.active = false;
-           consoleLog('🛡️ Shield закінчився!', 'info');
-          }, shieldDuration);
-          break;
-          case 'speedBoost':
-            activeEffects.speedBoost = { active: true, endTime: now + duration };
-            consoleLog('🚀 Speed Boost активовано! Швидкість збільшена на 5 секунд', 'success');
-            break;
-        }
-      }
-
-      function updateEffects(){
-        const now = Date.now();
-        
-        for(let effect in activeEffects){
-          if(activeEffects[effect].active && now > activeEffects[effect].endTime){
-            activeEffects[effect].active = false;
-            consoleLog(`${effect} закінчився`, 'info');
-          }
-        }
-      }
-
-      function updateBodyguardBot(){
-        if(!bodyguardBot.active) return;
-        
-        // Рух по колу навколо гравця
-        bodyguardBot.angle += 0.05;
-        const radius = 80;
-        bodyguardBot.x = player.x + player.size/2 + Math.cos(bodyguardBot.angle) * radius - bodyguardBot.size/2;
-        bodyguardBot.y = player.y + player.size/2 + Math.sin(bodyguardBot.angle) * radius - bodyguardBot.size/2;
-        
-        // Перевірка зіткнень з ворогами
-        for(let i = enemies.length - 1; i >= 0; i--){
-          const e = enemies[i];
-          if(
-            bodyguardBot.x < e.x + e.size &&
-            bodyguardBot.x + bodyguardBot.size > e.x &&
-            bodyguardBot.y < e.y + e.size &&
-            bodyguardBot.y + bodyguardBot.size > e.y
-          ){
-            // 25% шанс знищити ворога
-            if(Math.random() < 0.25){
-              enemies.splice(i, 1);
-              createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ff00');
-              consoleLog('🛡️ Бот-охоронець знищив ворога!', 'success');
-            }
-          }
-        }
-      }
-
-      function createBonusParticles(x, y, color) {
-        for(let i=0;i<20;i++){
-          particles.push({
-            x: x,
-            y: y,
-            vx: (Math.random()-0.5)*3,
-            vy: (Math.random()-0.5)*3,
-            life: 30+Math.random()*20,
-            color: color,
-            glow: Math.random()*2+1
-          });
-        }
-      }
-
-      // Функція для вібрації
-      function vibrate(pattern) {
-        if (vibrationEnabled && navigator.vibrate) {
-          navigator.vibrate(pattern);
-        }
-      }
-
-      function update(){
-        if(isGamePaused) return;
-
-        if(isGameActive){
-          // Оновлення ефектів
-          updateEffects();
-          
-          // Рух гравця з урахуванням speed boost
-          let currentSpeed = player.speed;
-          if(activeEffects.speedBoost.active) currentSpeed *= 1.6;
-          
-          if(keys['ArrowUp']||keys['w']) player.y-=currentSpeed;
-          if(keys['ArrowDown']||keys['s']) player.y+=currentSpeed;
-          if(keys['ArrowLeft']||keys['a']) player.x-=currentSpeed;
-          if(keys['ArrowRight']||keys['d']) player.x+=currentSpeed;
-
-          if(joystick.active){
-            player.x += joystick.dx * currentSpeed;
-            player.y += joystick.dy * currentSpeed;
-          }
-
-          player.x=Math.max(0,Math.min(player.x,width-player.size));
-          player.y=Math.max(0,Math.min(player.y,height-player.size));
-
-          // Рух AI бота
-          if (botEnabled) {
-            const dx = player.x - aiBot.x;
-            const dy = player.y - aiBot.y;
+            const dx = targetPlayer.x - aiBot.x;
+            const dy = targetPlayer.y - aiBot.y;
             const dist = Math.hypot(dx, dy);
 
             if (dist > 1) {
               aiBot.x += (dx / dist) * aiBot.speed;
               aiBot.y += (dy / dist) * aiBot.speed;
             }
-
-            if (
-              aiBot.x < player.x + player.size &&
-              aiBot.x + aiBot.size > player.x &&
-              aiBot.y < player.y + player.size &&
-              aiBot.y + aiBot.size > player.y
-            ) {
-              if (!godMode) { 
-                // Вібрація при зіткненні з ботом
-                vibrate([100, 50, 100]);
-                endGame(); 
-                return; 
-              }
-            }
-          }
-
-          // Рух ворогів з урахуванням slow motion
-          let enemySpeedMultiplier = 1;
-          if(activeEffects.slowMotion.active) enemySpeedMultiplier = 0.35;
-          
-          for(let e of enemies){ 
-            e.x+=e.vx * enemySpeedMultiplier; 
-            e.y+=e.vy * enemySpeedMultiplier; 
-          }
-          enemies=enemies.filter(e=>e.x>-200&&e.x<width+200&&e.y>-200&&e.y<height+200);
-
-          // Перевірка зіткнень з ворогами
-          for(let e of enemies){
-            if(e.x<player.x+player.size&&e.x+e.size>player.x&&e.y<player.y+player.size&&e.y+e.size>player.y){
-              if(!godMode){ 
-                if(activeEffects.shield.active){
-                  activeEffects.shield.active = false;
-                  // Вібрація при зіткненні з щитом
-                  vibrate([50, 30, 50]);
-                  consoleLog('🛡️ Shield поглинув удар!', 'success');
-                  // Видаляємо ворога при зіткненні з щитом
-                  enemies = enemies.filter(enemy => enemy !== e);
-                  createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ffff');
-                } else {
-                  // Вібрація при зіткненні з ворогом
-                  vibrate([200, 100, 200]);
-                  endGame(); 
-                  return; 
-                }
-              }
-            }
-          }
-
-          // Оновлення бота-охоронця
-          updateBodyguardBot();
-
-          // Обробка бонусів
-          bonuses = bonuses.filter(bonus => {
-            bonus.life--;
-            if (bonus.life <= 0) return false;
-            
-            if (player.x < bonus.x + bonus.size && player.x + player.size > bonus.x &&
-                player.y < bonus.y + bonus.size && player.y + player.size > bonus.y) {
-              
-              if (bonus.type === 'points') {
-                score += 100;
-                updateCounters();
-                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#ff0');
-                consoleLog('+100 очок!', 'success');
-              } else if (bonus.type === 'time') {
-                timeSec += 5;
-                updateCounters();
-                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#0ff');
-                consoleLog('+5 секунд!', 'success');
-              } else {
-                // Power-up бонуси
-                activatePowerup(bonus.type);
-                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, bonus.color);
-              }
-              return false;
-            }
-            return true;
-          });
         }
 
-        for(let p of particles){
-          p.x+=p.vx; p.y+=p.vy; p.life--;
+        // Перевірка зіткнення з гравцем 1
+        if (player.alive && !godMode && 
+            aiBot.x < player.x + player.size &&
+            aiBot.x + aiBot.size > player.x &&
+            aiBot.y < player.y + player.size &&
+            aiBot.y + aiBot.size > player.y) {
+          playerDeath(player);
         }
-        particles=particles.filter(p=>p.life>0);
-
-        for(let s of stars){
-          s.y+=s.speed;
-          if(s.y>height) s.y=0;
+        
+        // Перевірка зіткнення з гравцем 2
+        if (twoPlayerMode && player2.alive && 
+            aiBot.x < player2.x + player2.size &&
+            aiBot.x + aiBot.size > player2.x &&
+            aiBot.y < player2.y + player2.size &&
+            aiBot.y + aiBot.size > player2.y) {
+          playerDeath(player2);
         }
+      }
 
-        if(isGameOverAnim && particles.length===0){
-          isGameOverAnim=false;
-          showScreen('over');
-          if(timeSec>best){
-            best=timeSec; 
-            localStorage.setItem('bestTime',best);
-          }
-          if(score>bestScore){
-            bestScore=score;
-            localStorage.setItem('bestScore',bestScore);
-          }
-          updateGameOverCounters();
-          updateCounters();
-
-          aiBot.speed = 0.4 + Math.min(2.5, timeSec * 0.01);
-        }
+      // Рух ворогів з урахуванням slow motion
+      let enemySpeedMultiplier = 1;
+      // Перевіряємо чи хтось із гравців має активний slow motion
+      if(activeEffects.player1.slowMotion.active || activeEffects.player2.slowMotion.active) {
+        enemySpeedMultiplier = 0.35;
       }
       
-      function draw(){
-        ctx.clearRect(0,0,width,height);
+      for(let e of enemies){ 
+        e.x+=e.vx * enemySpeedMultiplier; 
+        e.y+=e.vy * enemySpeedMultiplier; 
+      }
+      enemies=enemies.filter(e=>e.x>-200&&e.x<width+200&&e.y>-200&&e.y<height+200);
 
-        for(let s of stars){
-          ctx.fillStyle = 'white';
-          ctx.globalAlpha = Math.random()*0.8+0.2;
-          ctx.beginPath();
-          ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-          ctx.fill();
-        }
-        ctx.globalAlpha=1;
+      // Перевірка зіткнень гравців з ворогами
+      checkPlayerCollisions();
+      
+      // Оновлення бота-охоронця
+      updateBodyguardBot();
 
-        if(!isGameOverAnim){
-          // Колір гравця залежно від ефектів
-          if(activeEffects.shield.active){
-            ctx.fillStyle='#00ffff';
-          } else if(activeEffects.speedBoost.active){
-            ctx.fillStyle='#ffff00';
-          } else {
-            ctx.fillStyle='#0af';
-          }
-          ctx.fillRect(player.x,player.y,player.size,player.size);
-        }
-
-        ctx.fillStyle='#f44';
-        for(let e of enemies) ctx.fillRect(e.x,e.y,e.size,e.size);
+      // Обробка бонусів для обох гравців
+      bonuses = bonuses.filter(bonus => {
+        bonus.life--;
+        if (bonus.life <= 0) return false;
         
-        // Малювання AI бота
-        if (botEnabled) {
-          ctx.fillStyle = '#c00';
-          ctx.fillRect(aiBot.x, aiBot.y, aiBot.size, aiBot.size);
+        // Перевірка для гравця 1
+        if (player.alive && 
+            player.x < bonus.x + bonus.size && player.x + player.size > bonus.x &&
+            player.y < bonus.y + bonus.size && player.y + player.size > bonus.y) {
+          collectBonus(bonus, player);
+          return false;
         }
         
-        // Малювання бота-охоронця
-        if(bodyguardBot.active){
-          ctx.fillStyle = '#00ff00';
-          ctx.fillRect(bodyguardBot.x, bodyguardBot.y, bodyguardBot.size, bodyguardBot.size);
+        // Перевірка для гравця 2
+        if (twoPlayerMode && player2.alive &&
+            player2.x < bonus.x + bonus.size && player2.x + player2.size > bonus.x &&
+            player2.y < bonus.y + bonus.size && player2.y + player2.size > bonus.y) {
+          collectBonus(bonus, player2);
+          return false;
         }
+        return true;
+      });
+    }
 
-        // Малювання бонусів
-        for(let bonus of bonuses){
-          ctx.fillStyle = bonus.color || (bonus.type === 'points' ? '#ff0' : '#0ff');
-          ctx.globalAlpha = Math.max(0.3, bonus.life / 300);
-          ctx.fillRect(bonus.x, bonus.y, bonus.size, bonus.size);
-          ctx.globalAlpha = 1;
+    for(let p of particles){
+      p.x+=p.vx; p.y+=p.vy; p.life--;
+    }
+    particles=particles.filter(p=>p.life>0);
+
+    for(let s of stars){
+      s.y+=s.speed;
+      if(s.y>height) s.y=0;
+    }
+
+    if(isGameOverAnim && particles.length===0){
+      isGameOverAnim=false;
+      showScreen('over');
+      if(!twoPlayerMode) {
+        if(timeSec>best){
+          best=timeSec; 
+          localStorage.setItem('bestTime',best);
         }
-
-        for(let p of particles){
-          ctx.fillStyle=p.color;
-          ctx.globalAlpha = Math.max(0,p.life/60);
-          ctx.shadowBlur = p.glow||0;
-          ctx.shadowColor = p.color;
-          ctx.fillRect(p.x,p.y,3,3);
-          ctx.globalAlpha=1;
-          ctx.shadowBlur = 0;
-        }
-
-        if(joystick.active){
-          ctx.strokeStyle='rgba(0,255,0,0.3)';
-          ctx.lineWidth=2;
-          ctx.beginPath();
-          ctx.arc(joystick.x,joystick.y,40,0,Math.PI*2);
-          ctx.stroke();
-          ctx.fillStyle='rgba(0,255,0,0.4)';
-          ctx.beginPath();
-          ctx.arc(joystick.x+joystick.dx*30,joystick.y+joystick.dy*30,12,0,Math.PI*2);
-          ctx.fill();
+        if(score>bestScore){
+          bestScore=score;
+          localStorage.setItem('bestScore',bestScore);
         }
       }
+      updateGameOverCounters();
+      updateCounters();
 
-      function loop(){ update(); draw(); animationId=requestAnimationFrame(loop); }
+      aiBot.speed = 0.4 + Math.min(2.5, timeSec * 0.01);
+    }
+  }
+  
+  function draw(){
+    ctx.clearRect(0,0,width,height);
 
-      /* ------------------ Функції для музики ------------------ */
-      function playMenuMusic() {
-        if (!menuMusicEnabled) {
-          stopMenuMusic();
-          return;
-        }
-        stopGameMusic();
-        menuMusic.play().catch(e => {
-          if (!musicAutoplayAttempted) {
-            console.log('Автовідтворення музики заблоковано, буде включено при взаємодії');
-            musicAutoplayAttempted = true;
-          }
-        });
+    for(let s of stars){
+      ctx.fillStyle = 'white';
+      ctx.globalAlpha = Math.random()*0.8+0.2;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    // Малювання гравця 1 (якщо живий)
+    if(player.alive){
+      // Визначаємо колір на основі активних ефектів
+      if(activeEffects.player1.shield.active){
+        ctx.fillStyle='#00ffff';
+      } else if(activeEffects.player1.speedBoost.active){
+        ctx.fillStyle='#ffff00';
+      } else {
+        ctx.fillStyle='#0af';
       }
-
-      function playGameMusic() {
-        if (!gameMusicEnabled) {
-          stopGameMusic();
-          return;
-        }
-        stopMenuMusic();
-        gameMusic.play().catch(e => {
-          if (!musicAutoplayAttempted) {
-            console.log('Автовідтворення музики гри заблоковано');
-            musicAutoplayAttempted = true;
-          }
-        });
+      ctx.fillRect(player.x,player.y,player.size,player.size);
+      
+      // Додаємо візуальний ефект для щита
+      if(activeEffects.player1.shield.active){
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.5;
+        ctx.strokeRect(player.x - 3, player.y - 3, player.size + 6, player.size + 6);
+        ctx.globalAlpha = 1;
       }
+    }
 
-      function stopGameMusic() {
-        gameMusic.pause();
-        gameMusic.currentTime = 0;
+    // Малювання гравця 2 (темно-коричневий, якщо живий)
+    if (twoPlayerMode && player2.alive) {
+      // Визначаємо колір на основі активних ефектів
+      if(activeEffects.player2.shield.active){
+        ctx.fillStyle='#ffa500'; // Помаранчевий для щита
+      } else if(activeEffects.player2.speedBoost.active){
+        ctx.fillStyle='#ffdd00'; // Яскраво-жовтий для speed boost
+      } else {
+        ctx.fillStyle='#a52';
       }
-
-      function stopMenuMusic() {
-        menuMusic.pause();
-        menuMusic.currentTime = 0;
+      ctx.fillRect(player2.x,player2.y,player2.size,player2.size);
+      
+      // Додаємо візуальний ефект для щита
+      if(activeEffects.player2.shield.active){
+        ctx.strokeStyle = '#ffa500';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.5;
+        ctx.strokeRect(player2.x - 3, player2.y - 3, player2.size + 6, player2.size + 6);
+        ctx.globalAlpha = 1;
       }
+    }
 
-      function stopAllMusic() {
-        stopMenuMusic();
-        stopGameMusic();
-      }
+    ctx.fillStyle='#f44';
+    for(let e of enemies) ctx.fillRect(e.x,e.y,e.size,e.size);
+    
+    // Малювання AI бота
+    if (botEnabled) {
+      ctx.fillStyle = '#c00';
+      ctx.fillRect(aiBot.x, aiBot.y, aiBot.size, aiBot.size);
+    }
+    
+    // Малювання бота-охоронця
+    if(bodyguardBot.active){
+      ctx.fillStyle = '#00ff00';
+      ctx.fillRect(bodyguardBot.x, bodyguardBot.y, bodyguardBot.size, bodyguardBot.size);
+    }
 
-      // Функція для примусового запуску музики при взаємодії користувача
-      function forcePlayMusic() {
+    // Малювання бонусів
+    for(let bonus of bonuses){
+      ctx.fillStyle = bonus.color || (bonus.type === 'points' ? '#ff0' : '#0ff');
+      ctx.globalAlpha = Math.max(0.3, bonus.life / 300);
+      ctx.fillRect(bonus.x, bonus.y, bonus.size, bonus.size);
+      ctx.globalAlpha = 1;
+    }
+
+    for(let p of particles){
+      ctx.fillStyle=p.color;
+      ctx.globalAlpha = Math.max(0,p.life/60);
+      ctx.shadowBlur = p.glow||0;
+      ctx.shadowColor = p.color;
+      ctx.fillRect(p.x,p.y,3,3);
+      ctx.globalAlpha=1;
+      ctx.shadowBlur = 0;
+    }
+
+    if(joystick.active){
+      ctx.strokeStyle='rgba(0,255,0,0.3)';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.arc(joystick.x,joystick.y,40,0,Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle='rgba(0,255,0,0.4)';
+      ctx.beginPath();
+      ctx.arc(joystick.x+joystick.dx*30,joystick.y+joystick.dy*30,12,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function loop(){ update(); draw(); animationId=requestAnimationFrame(loop); }
+
+  /* ------------------ Функції для музики ------------------ */
+  function playMenuMusic() {
+    if (!menuMusicEnabled) {
+      stopMenuMusic();
+      return;
+    }
+    stopGameMusic();
+    menuMusic.play().catch(e => {
+      if (!musicAutoplayAttempted) {
+        console.log('Автовідтворення музики заблоковано, буде включено при взаємодії');
         musicAutoplayAttempted = true;
-        if (menu.style.display === 'flex' && menuMusicEnabled) {
-          playMenuMusic();
-        } else if (gameScreen.style.display === 'flex' && gameMusicEnabled && !isGamePaused) {
-          playGameMusic();
-        }
       }
+    });
+  }
 
-      /* ------------------ Функції для налаштувань ------------------ */
-      function openSettings() {
-        settingsModal.style.display = 'flex';
+  function playGameMusic() {
+    if (!gameMusicEnabled) {
+      stopGameMusic();
+      return;
+    }
+    stopMenuMusic();
+    gameMusic.play().catch(e => {
+      if (!musicAutoplayAttempted) {
+        console.log('Автовідтворення музики гри заблоковано');
+        musicAutoplayAttempted = true;
       }
+    });
+  }
 
-      function closeSettings() {
-        settingsModal.style.display = 'none';
-        saveSettings();
-      }
+  function stopGameMusic() {
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+  }
 
-      function saveSettings() {
-        currentLanguage = languageSelect.value;
-        menuMusicEnabled = menuMusicToggle.checked;
-        gameMusicEnabled = gameMusicToggle.checked;
-        vibrationEnabled = vibrationToggle.checked;
-        
-        localStorage.setItem('language', currentLanguage);
-        localStorage.setItem('menuMusicEnabled', menuMusicEnabled);
-        localStorage.setItem('gameMusicEnabled', gameMusicEnabled);
-        localStorage.setItem('vibrationEnabled', vibrationEnabled);
-        
-        updateLanguage();
-        
-        // Миттєве вимикання/вмикання музики
-        if (!menuMusicEnabled) {
-          stopMenuMusic();
-        } else if (menu.style.display === 'flex') {
-          playMenuMusic();
-        }
-        
-        if (!gameMusicEnabled) {
-          stopGameMusic();
-        } else if (gameScreen.style.display === 'flex' && !isGamePaused) {
-          playGameMusic();
-        }
-      }
+  function stopMenuMusic() {
+    menuMusic.pause();
+    menuMusic.currentTime = 0;
+  }
 
-      function loadSettings() {
-        const savedLanguage = localStorage.getItem('language');
-        const savedMenuMusic = localStorage.getItem('menuMusicEnabled');
-        const savedGameMusic = localStorage.getItem('gameMusicEnabled');
-        const savedVibration = localStorage.getItem('vibrationEnabled');
-        
-        if (savedLanguage) {
-          currentLanguage = savedLanguage;
-          languageSelect.value = currentLanguage;
-        }
-        
-        if (savedMenuMusic !== null) {
-          menuMusicEnabled = savedMenuMusic === 'true';
-          menuMusicToggle.checked = menuMusicEnabled;
-        }
-        
-        if (savedGameMusic !== null) {
-          gameMusicEnabled = savedGameMusic === 'true';
-          gameMusicToggle.checked = gameMusicEnabled;
-        }
-        
-        if (savedVibration !== null) {
-          vibrationEnabled = savedVibration === 'true';
-          vibrationToggle.checked = vibrationEnabled;
-        }
-      }
+  function stopAllMusic() {
+    stopMenuMusic();
+    stopGameMusic();
+  }
 
-      /* ------------------ Обробники подій ГРИ ------------------ */
-      addEventListener('keydown',e=>{
-        keys[e.key]=true;
-        if(e.key === 'Escape' && isGameActive && !isGameOverAnim){ 
-          togglePause();
-        }
-      });
-      addEventListener('keyup',e=>{keys[e.key]=false;});
+  // Функція для примусового запуску музики при взаємодії користувача
+  function forcePlayMusic() {
+    musicAutoplayAttempted = true;
+    if (menu.style.display === 'flex' && menuMusicEnabled) {
+      playMenuMusic();
+    } else if (gameScreen.style.display === 'flex' && gameMusicEnabled && !isGamePaused) {
+      playGameMusic();
+    }
+  }
 
-      canvas.addEventListener('touchstart',e=>{
-        if(isGamePaused) return; 
-        const t=e.touches[0]; joystick.active=true; joystick.x=t.clientX; joystick.y=t.clientY; joystick.dx=0; joystick.dy=0;
-      });
-      canvas.addEventListener('touchmove',e=>{
-        if(!joystick.active || isGamePaused) return;
-        const t=e.touches[0];
-        const dx=t.clientX-joystick.x;
-        const dy=t.clientY-joystick.y;
-        const len=Math.hypot(dx,dy);
-        const max=40;
-        joystick.dx=(len>max?dx/len:dx/max);
-        joystick.dy=(len>max?dy/len:dy/max);
-      });
-      canvas.addEventListener('touchend',()=>{joystick.active=false;});
+  /* ------------------ Функції для налаштувань ------------------ */
+  function openSettings() {
+    settingsModal.style.display = 'flex';
+  }
 
-      // Обробники подій для примусового запуску музики
-      document.addEventListener('click', forcePlayMusic);
-      document.addEventListener('keydown', forcePlayMusic);
-      document.addEventListener('touchstart', forcePlayMusic);
+  function closeSettings() {
+    settingsModal.style.display = 'none';
+    saveSettings();
+  }
 
-      // Зупинка музики при зміні вкладки
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          stopAllMusic();
-        } else {
-          // При поверненні на вкладку - відтворюємо музику
-          setTimeout(forcePlayMusic, 100);
-        }
-      });
+  function saveSettings() {
+    currentLanguage = languageSelect.value;
+    menuMusicEnabled = menuMusicToggle.checked;
+    gameMusicEnabled = gameMusicToggle.checked;
+    vibrationEnabled = vibrationToggle.checked;
+    
+    localStorage.setItem('language', currentLanguage);
+    localStorage.setItem('menuMusicEnabled', menuMusicEnabled);
+    localStorage.setItem('gameMusicEnabled', gameMusicEnabled);
+    localStorage.setItem('vibrationEnabled', vibrationEnabled);
+    
+    updateLanguage();
+    
+    // Миттєве вимикання/вмикання музики
+    if (!menuMusicEnabled) {
+      stopMenuMusic();
+    } else if (menu.style.display === 'flex') {
+      playMenuMusic();
+    }
+    
+    if (!gameMusicEnabled) {
+      stopGameMusic();
+    } else if (gameScreen.style.display === 'flex' && !isGamePaused) {
+      playGameMusic();
+    }
+  }
 
-      // Зупинка музики при закритті вікна
-      window.addEventListener('beforeunload', stopAllMusic);
+  function loadSettings() {
+    const savedLanguage = localStorage.getItem('language');
+    const savedMenuMusic = localStorage.getItem('menuMusicEnabled');
+    const savedGameMusic = localStorage.getItem('gameMusicEnabled');
+    const savedVibration = localStorage.getItem('vibrationEnabled');
+    
+    if (savedLanguage) {
+      currentLanguage = savedLanguage;
+      languageSelect.value = currentLanguage;
+    }
+    
+    if (savedMenuMusic !== null) {
+      menuMusicEnabled = savedMenuMusic === 'true';
+      menuMusicToggle.checked = menuMusicEnabled;
+    }
+    
+    if (savedGameMusic !== null) {
+      gameMusicEnabled = savedGameMusic === 'true';
+      gameMusicToggle.checked = gameMusicEnabled;
+    }
+    
+    if (savedVibration !== null) {
+      vibrationEnabled = savedVibration === 'true';
+      vibrationToggle.checked = vibrationEnabled;
+    }
+  }
 
-      /* ------------------ Обробники подій КНОПОК ------------------ */
-      startBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
-      retryBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
-      menuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
-      pauseBtn.addEventListener('click', togglePause);
-      resumeBtn.addEventListener('click', togglePause);
-      pauseMenuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
-      botBtn.addEventListener('click', toggleBot);
-      settingsBtn.addEventListener('click', openSettings);
-      closeSettingsBtn.addEventListener('click', closeSettings);
-      
-      resetBtn.addEventListener('click', () => { 
-        if(confirm('Ви точно хочете скинути прогрес?')){ 
-          localStorage.removeItem('bestTime'); 
-          localStorage.removeItem('bestScore');
-          best=0; 
-          bestScore=0;
-          updateCounters();
-          alert('Прогрес скинуто!'); 
-        } 
-      });
+  /* ------------------ Обробники подій ГРИ ------------------ */
+  addEventListener('keydown', e => {
+    const key = e.key.toLowerCase();
+    keys[key] = true;
+    // Для стрілок зберігаємо і оригінальне значення
+    if (e.key.includes('Arrow')) {
+        keys[e.key] = true;
+    }
+    
+    if(e.key === 'Escape' && isGameActive && !isGameOverAnim){ 
+        togglePause();
+    }
+  });
 
-      const showHelpAlert = () => {
-        const t = translations[currentLanguage];
-        alert(currentLanguage === 'uk' ? 
+  addEventListener('keyup', e => {
+    const key = e.key.toLowerCase();
+    keys[key] = false;
+    // Для стрілок видаляємо і оригінальне значення
+    if (e.key.includes('Arrow')) {
+        keys[e.key] = false;
+    }
+  });
+
+  canvas.addEventListener('touchstart',e=>{
+    if(isGamePaused) return; 
+    const t=e.touches[0]; joystick.active=true; joystick.x=t.clientX; joystick.y=t.clientY; joystick.dx=0; joystick.dy=0;
+  });
+  canvas.addEventListener('touchmove',e=>{
+    if(!joystick.active || isGamePaused) return;
+    const t=e.touches[0];
+    const dx=t.clientX-joystick.x;
+    const dy=t.clientY-joystick.y;
+    const len=Math.hypot(dx,dy);
+    const max=40;
+    joystick.dx=(len>max?dx/len:dx/max);
+    joystick.dy=(len>max?dy/len:dy/max);
+  });
+  canvas.addEventListener('touchend',()=>{joystick.active=false;});
+
+  // Обробники подій для примусового запуску музики
+  document.addEventListener('click', forcePlayMusic);
+  document.addEventListener('keydown', forcePlayMusic);
+  document.addEventListener('touchstart', forcePlayMusic);
+
+  // Зупинка музики при зміні вкладки
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAllMusic();
+    } else {
+      // При поверненні на вкладку - відтворюємо музику
+      setTimeout(forcePlayMusic, 100);
+    }
+  });
+
+  // Зупинка музики при закритті вікна
+  window.addEventListener('beforeunload', stopAllMusic);
+
+  /* ------------------ Обробники подій КНОПОК ------------------ */
+  startBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
+  retryBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
+  menuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
+  pauseBtn.addEventListener('click', togglePause);
+  resumeBtn.addEventListener('click', togglePause);
+  pauseMenuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
+  botBtn.addEventListener('click', toggleBot);
+  settingsBtn.addEventListener('click', openSettings);
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  
+  resetBtn.addEventListener('click', () => { 
+    if(confirm('Ви точно хочете скинути прогрес?')){ 
+      localStorage.removeItem('bestTime'); 
+      localStorage.removeItem('bestScore');
+      best=0; 
+      bestScore=0;
+      updateCounters();
+      alert('Прогрес скинуто!'); 
+    } 
+  });
+
+  const showHelpAlert = () => {
+    const t = translations[currentLanguage];
+    alert(currentLanguage === 'uk' ? 
 `🎮 Інструкція до гри
 
 🕹 На телефоні: використовуйте джойстик для руху синього квадрата.
@@ -1441,201 +1786,226 @@ if ('serviceWorker' in navigator) {
 🤖 Bot: red square that chases the player
 
 💡 Power-ups appear every 10 seconds!`);
-      };
+  };
 
-      // ------------------ ЛОГІКА КОНСОЛІ ТА LONG-PRESS ------------------
-      
-      function getFullHTMLCode() {
-          return "<!doctype html>\n" + document.documentElement.outerHTML;
+  // ------------------ ЛОГІКА КОНСОЛІ ТА LONG-PRESS ------------------
+  
+  function getFullHTMLCode() {
+      return "<!doctype html>\n" + document.documentElement.outerHTML;
+  }
+
+  function consoleLog(text,type='info'){
+    const time=new Date().toLocaleTimeString();
+    const el=document.createElement('div'); el.style.padding='3px 0';
+    if(type==='error') el.style.color='#ff8080';
+    else if(type==='success') el.style.color='#80ffaa';
+    else el.style.color='#ccc';
+    el.textContent=`[${time}] ${text}`; consoleBody.appendChild(el); consoleBody.scrollTop=consoleBody.scrollHeight;
+  }
+  
+  function closeHelpModalHandler(){
+      helpModal.style.display = 'none';
+      if (helpTimeoutId) {
+          clearTimeout(helpTimeoutId);
+          helpTimeoutId = null;
       }
+  }
 
-      function consoleLog(text,type='info'){
-        const time=new Date().toLocaleTimeString();
-        const el=document.createElement('div'); el.style.padding='3px 0';
-        if(type==='error') el.style.color='#ff8080';
-        else if(type==='success') el.style.color='#80ffaa';
-        else el.style.color='#ccc';
-        el.textContent=`[${time}] ${text}`; consoleBody.appendChild(el); consoleBody.scrollTop=consoleBody.scrollHeight;
-      }
-      
-      function closeHelpModalHandler(){
-          helpModal.style.display = 'none';
-          if (helpTimeoutId) {
-              clearTimeout(helpTimeoutId);
-              helpTimeoutId = null;
-          }
-      }
+  function showHelpModal(){
+      if (helpTimeoutId) clearTimeout(helpTimeoutId);
 
-      function showHelpModal(){
-          if (helpTimeoutId) clearTimeout(helpTimeoutId);
+      helpModal.style.display = 'block';
 
-          helpModal.style.display = 'block';
+      helpTimeoutId = setTimeout(closeHelpModalHandler, 5000); 
+  }
 
-          helpTimeoutId = setTimeout(closeHelpModalHandler, 5000); 
-      }
+  function closeConsole(){
+      consoleOverlay.style.display='none'; 
+      consoleOverlay.setAttribute('aria-hidden','true');
+  }
 
-      function closeConsole(){
-          consoleOverlay.style.display='none'; 
-          consoleOverlay.setAttribute('aria-hidden','true');
-      }
-
-      function handleCommand(raw){
-        if(!raw||raw.trim()==='') return;
-        const parts=raw.trim().split(/\s+/), cmd=parts[0].toLowerCase(), args=parts.slice(1);
-        consoleLog('> '+raw,'info');
-        switch(cmd){
-          case '/help':
-            showHelpModal(); 
-            break;
-          case '/code':
-            {
-                const password = prompt('Введіть пароль для доступу до коду:'); 
-                if (password === SECURE_PASSWORD) {
-                    codePre.textContent = getFullHTMLCode(); 
-                    codeModal.style.display = 'flex'; 
-                    consoleLog('Access granted. Code shown.','success'); 
-                } else {
-                    consoleLog('Access denied. Incorrect password.','error');
-                }
+  function handleCommand(raw){
+    if(!raw||raw.trim()==='') return;
+    const parts=raw.trim().split(/\s+/), cmd=parts[0].toLowerCase(), args=parts.slice(1);
+    consoleLog('> '+raw,'info');
+    switch(cmd){
+      case '/help':
+        showHelpModal(); 
+        break;
+      case '/code':
+        {
+            const password = prompt('Введіть пароль для доступу до коду:'); 
+            if (password === SECURE_PASSWORD) {
+                codePre.textContent = getFullHTMLCode(); 
+                codeModal.style.display = 'flex'; 
+                consoleLog('Access granted. Code shown.','success'); 
+            } else {
+                consoleLog('Access denied. Incorrect password.','error');
             }
-            break;
-          case '/god':{
-            const mode=args[0]&&args[0].toLowerCase();
-            if(mode==='on'){ godMode=true; consoleLog('God mode ON','success'); }
-            else if(mode==='off'){ godMode=false; consoleLog('God mode OFF','success'); }
-            else consoleLog('Usage: /god on|off','error');
-            break;
-          }
-          case '/score':
-            consoleLog(`Поточний рахунок: ${score}`,'success');
-            break;
-          case '/time':
-            consoleLog(`Час гри: ${timeSec} секунд`,'success');
-            break;
-          case '/clear':
-            consoleBody.innerHTML = '';
-            consoleLog('Консоль очищена','success');
-            break;
-          case '/enemies':
-            consoleLog(`Активних ворогів: ${enemies.length}`,'info');
-            break;
-          case '/bot':{
-            const mode=args[0]&&args[0].toLowerCase();
-            if(mode==='on'){ 
-              botEnabled=true; 
-              updateBotButton();
-              consoleLog('Бот увімкнений','success'); 
-            }
-            else if(mode==='off'){ 
-              botEnabled=false; 
-              updateBotButton();
-              consoleLog('Бот вимкнений','success'); 
-            }
-            else consoleLog('Usage: /bot on|off','error');
-            break;
-          }
-          case '/bb':{
-            const mode=args[0]&&args[0].toLowerCase();
-            if(mode==='on'){ 
-              bodyguardBot.active=true; 
-              consoleLog('Бот-охоронець увімкнений','success'); 
-            }
-            else if(mode==='off'){ 
-              bodyguardBot.active=false; 
-              consoleLog('Бот-охоронець вимкнений','success'); 
-            }
-            else consoleLog('Usage: /bb on|off','error');
-            break;
-          }
-          default: consoleLog('Unknown command. Type /help for assistance.','error');
         }
+        break;
+      case '/god':{
+        const mode=args[0]&&args[0].toLowerCase();
+        if(mode==='on'){ godMode=true; consoleLog('God mode ON','success'); }
+        else if(mode==='off'){ godMode=false; consoleLog('God mode OFF','success'); }
+        else consoleLog('Usage: /god on|off','error');
+        break;
       }
-
-      consoleSend.addEventListener('click', () => { 
-        handleCommand(consoleInput.value); 
-        consoleInput.value=''; 
-        consoleInput.focus(); 
-      });
-      
-      consoleInput.addEventListener('keydown', e => { 
-        if(e.key==='Enter'){ 
-          e.preventDefault(); 
-          handleCommand(consoleInput.value); 
-          consoleInput.value=''; 
-        } 
-      });
-      
-      closeConsoleBtn.addEventListener('click', closeConsole); 
-      consoleBackBtn.addEventListener('click', closeConsole); 
-      closeCodeModal.addEventListener('click', () => { codeModal.style.display='none'; }); 
-      closeHelpModal.addEventListener('click', closeHelpModalHandler); 
-
-      let holdTimer = null;
-      const HOLD_MS = 2000; 
-
-      function openConsole(){
-        consoleOverlay.style.display = 'flex';
-        consoleOverlay.setAttribute('aria-hidden','false');
-        consoleInput.focus();
-        consoleStatus.textContent = 'system active'; 
-      }
-
-      function startHoldTimer(e){
-        e.preventDefault(); 
-        if(holdTimer) clearTimeout(holdTimer);
-        
-        holdTimer = setTimeout(()=>{ 
-          openConsole(); 
-          holdTimer = null; 
-          consoleLog('Консоль відкрито. Введіть /help для довідки.','success'); 
-        }, HOLD_MS);
-      }
-
-      function cancelHoldTimer(e){
-        if(holdTimer){ 
-          clearTimeout(holdTimer);
-          if(e.type === 'mouseup' || e.type === 'touchend') {
-            showHelpAlert(); 
-          }
-          holdTimer = null;
+      case '/score':
+        consoleLog(`Поточний рахунок: ${score}${twoPlayerMode ? ` | Гравець 2: ${score2}` : ''}`,'success');
+        break;
+      case '/time':
+        consoleLog(`Час гри: ${timeSec} секунд`,'success');
+        break;
+      case '/clear':
+        consoleBody.innerHTML = '';
+        consoleLog('Консоль очищена','success');
+        break;
+      case '/enemies':
+        consoleLog(`Активних ворогів: ${enemies.length}`,'info');
+        break;
+      case '/bot':{
+        const mode=args[0]&&args[0].toLowerCase();
+        if(mode==='on'){ 
+          botEnabled=true; 
+          updateBotButton();
+          consoleLog('Бот увімкнений','success'); 
         }
-      }
-
-      howBtn.addEventListener('mousedown', startHoldTimer);
-      howBtn.addEventListener('mouseup', cancelHoldTimer);
-      howBtn.addEventListener('mouseleave', () => { 
-        if(holdTimer) clearTimeout(holdTimer);
-        holdTimer = null;
-      });
-      howBtn.addEventListener('touchstart', startHoldTimer, {passive:false});
-      howBtn.addEventListener('touchend', cancelHoldTimer);
-      // ------------------ Кнопка тільки у меню ------------------
-      myMenuBtn.addEventListener('click', () => {
-      if(menu.style.display === 'flex'){ // перевіряємо, що зараз показане меню
-      window.open('https://github.com/redel1290/APK/tree/main', '_blank');
-      }
-});
-
-
-      /* ------------------ Ініціалізація ------------------ */
-      consoleStatus.textContent = 'system ready'; 
-      
-      // Завантаження налаштувань
-      loadSettings();
-      
-      // Спроба автоматичного відтворення музики
-      setTimeout(() => {
-        if (menuMusicEnabled) {
-          playMenuMusic();
+        else if(mode==='off'){ 
+          botEnabled=false; 
+          updateBotButton();
+          consoleLog('Бот вимкнений','success'); 
         }
-      }, 500);
-      
-      updateBotButton();
-      updateCounters();
-      updateLanguage();
-      showScreen('menu');
-      resize();
-    })();
-        </script>
-        </body>
-        </html>
+        else consoleLog('Usage: /bot on|off','error');
+        break;
+      }
+      case '/bb':{
+        const mode=args[0]&&args[0].toLowerCase();
+        if(mode==='on'){ 
+          bodyguardBot.active=true; 
+          consoleLog('Бот-охоронець увімкнений','success'); 
+        }
+        else if(mode==='off'){ 
+          bodyguardBot.active=false; 
+          consoleLog('Бот-охоронець вимкнений','success'); 
+        }
+        else consoleLog('Usage: /bb on|off','error');
+        break;
+      }
+      case '/twoplayer':{
+        const mode=args[0]&&args[0].toLowerCase();
+        if(mode==='on'){ 
+          toggleTwoPlayerMode();
+        }
+        else if(mode==='off'){ 
+          toggleTwoPlayerMode();
+        }
+        else consoleLog('Usage: /twoplayer on|off','error');
+        break;
+      }
+      default: consoleLog('Unknown command. Type /help for assistance.','error');
+    }
+  }
+
+  consoleSend.addEventListener('click', () => { 
+    handleCommand(consoleInput.value); 
+    consoleInput.value=''; 
+    consoleInput.focus(); 
+  });
+  
+  consoleInput.addEventListener('keydown', e => { 
+    if(e.key==='Enter'){ 
+      e.preventDefault(); 
+      handleCommand(consoleInput.value); 
+      consoleInput.value=''; 
+    } 
+  });
+  
+  closeConsoleBtn.addEventListener('click', closeConsole); 
+  consoleBackBtn.addEventListener('click', closeConsole); 
+  closeCodeModal.addEventListener('click', () => { codeModal.style.display='none'; }); 
+  closeHelpModal.addEventListener('click', closeHelpModalHandler); 
+
+  let holdTimer = null;
+  const HOLD_MS = 2000; 
+
+  function openConsole(){
+    consoleOverlay.style.display = 'flex';
+    consoleOverlay.setAttribute('aria-hidden','false');
+    consoleInput.focus();
+    consoleStatus.textContent = 'system active'; 
+  }
+
+  function startHoldTimer(e){
+    e.preventDefault(); 
+    if(holdTimer) clearTimeout(holdTimer);
+    
+    holdTimer = setTimeout(()=>{ 
+      openConsole(); 
+      holdTimer = null; 
+      consoleLog('Консоль відкрито. Введіть /help для довідки.','success'); 
+    }, HOLD_MS);
+  }
+
+  function cancelHoldTimer(e){
+    if(holdTimer){ 
+      clearTimeout(holdTimer);
+      if(e.type === 'mouseup' || e.type === 'touchend') {
+        showHelpAlert(); 
+      }
+      holdTimer = null;
+    }
+  }
+
+  howBtn.addEventListener('mousedown', startHoldTimer);
+  howBtn.addEventListener('mouseup', cancelHoldTimer);
+  howBtn.addEventListener('mouseleave', () => { 
+    if(holdTimer) clearTimeout(holdTimer);
+    holdTimer = null;
+  });
+  howBtn.addEventListener('touchstart', startHoldTimer, {passive:false});
+  howBtn.addEventListener('touchend', cancelHoldTimer);
+
+  /* ------------------ Ініціалізація ------------------ */
+  consoleStatus.textContent = 'system ready'; 
+  
+  // Завантаження налаштувань
+  loadSettings();
+  
+  // Створюємо кнопку для двох гравців динамічно
+  const buttonsContainer = document.querySelector('#menu .buttons');
+  if (buttonsContainer) {
+    twoPlayerBtn = document.createElement('button');
+    twoPlayerBtn.id = 'twoPlayerBtn';
+    twoPlayerBtn.className = 'two-player-btn';
+    twoPlayerBtn.textContent = translations[currentLanguage].twoPlayerBtnOff;
+    
+    // Вставляємо після кнопки бота
+    botBtn.parentNode.insertBefore(twoPlayerBtn, botBtn.nextSibling);
+    
+    // Додаємо обробник події
+    twoPlayerBtn.addEventListener('click', toggleTwoPlayerMode);
+    
+    // Приховуємо кнопку на мобільних пристроях
+    if (isMobileDevice()) {
+      twoPlayerBtn.style.display = 'none';
+    }
+  }
+  
+  // Спроба автоматичного відтворення музики
+  setTimeout(() => {
+    if (menuMusicEnabled) {
+      playMenuMusic();
+    }
+  }, 500);
+  
+  updateBotButton();
+  updateTwoPlayerButton();
+  updateCounters();
+  updateLanguage();
+  showScreen('menu');
+  resize();
+})();
+  </script>
+</body>
+</html>

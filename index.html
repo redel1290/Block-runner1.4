@@ -681,7 +681,9 @@ fpsSelect.addEventListener('change', () => {
   let godMode = false;
   let helpTimeoutId = null;
   
-  const SECURE_PASSWORD = 'kill.app';
+  const SECURE_PASSWORD = String.fromCharCode(
+    107,105,108,108,46,97,112,112
+);
 
   /* ------------------ Функції оновлення лічильників ------------------ */
   function updateCounters() {

@@ -349,7 +349,7 @@
         </select>
       </div>
       <div class="settings-item">
-      <label for="fps-select">FPS</label>
+      <label for="fps-select">Швидкість гри</label>
       <select id="fps-select" class="language-select">
         <option value="30">30</option>
         <option value="60" selected>60</option>
@@ -1804,8 +1804,6 @@ function updateEffects(deltaTime){
   - Бірюзові: Shield (захист від одного удару на 20с)
   - Жовті великі: Speed Boost (збільшує швидкість)
 
-У налаштуваннях можна змінити FPS, але від нього залежить швидкість гри.
-
 На ПК/ноутбуці доступний режим для двох
 
 🤖 Бот: червоний квадрат, який переслідує гравця
@@ -1823,7 +1821,6 @@ function updateEffects(deltaTime){
   - Teal: Shield (protection from one hit for 20s)
   - Large Yellow: Speed Boost (increases speed)
 
-You can change the FPS in the settings, but it affects the game speed.
 
 On PC/Laptop, a two-player mode is available
 
@@ -2050,25 +2047,6 @@ On PC/Laptop, a two-player mode is available
   showScreen('menu');
   resize();
 })();
-const consoleOverlay = document.getElementById("consoleOverlay");
-let consoleOpen = false;
-
-document.addEventListener("keydown", (e) => {
-    if (e.shiftKey && e.key.toLowerCase() === "b") {
-        consoleOpen = !consoleOpen;
-
-        if (consoleOpen) {
-            consoleOverlay.style.display = "block";
-
-            // Фокус на поле вводу консолі
-            const input = document.getElementById("consoleInput");
-            if (input) setTimeout(() => input.focus(), 50);
-
-        } else {
-            consoleOverlay.style.display = "none";
-        }
-    }
-});
   </script>
 </body>
 </html>

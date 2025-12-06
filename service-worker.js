@@ -1,4 +1,4 @@
-const CACHE_NAME = "blockrunner-v11";
+const CACHE_NAME = "blockrunner-v12";
 
 const FILES_TO_CACHE = [
   "./",

@@ -7,6 +7,8 @@ const FILES_TO_CACHE = [
   "./icons/icon.png",
   "./music/game.mp3",
   "./music/menu.mp3",
+  "./favicon.png",
+  "./apple-icon.png",
   // додай тут інші файли гри (звуки, картинки, рівні)
 ];
 
